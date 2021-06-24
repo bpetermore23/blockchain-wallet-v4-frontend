@@ -1,20 +1,20 @@
+import React, { useRef, useState } from 'react'
 import { FormattedMessage } from 'react-intl'
 import { LinkContainer } from 'react-router-bootstrap'
-import React, { useRef, useState } from 'react'
 import styled from 'styled-components'
 
-import { Destination } from 'components/MenuLeft'
-import {
-  DropdownMenu,
-  DropdownMenuArrow,
-  DropdownMenuItem
-} from 'components/Navbar/NavbarDropdown'
 import {
   NavbarNavItem,
   NavbarNavItemButton,
   NavbarNavItemIcon
 } from 'components/Navbar'
-import { useOnClickOutside } from 'services/HooksService'
+import {
+  DropdownMenu,
+  DropdownMenuArrow,
+  DropdownMenuItem
+} from 'components/Navbar/NavbarDropdown'
+import { Destination } from 'layouts/Wallet/components'
+import { useOnClickOutside } from 'services/misc'
 
 import { Props } from '.'
 
@@ -51,16 +51,21 @@ const Settings = (props: Props) => {
                 </Destination>
               </DropdownMenuItem>
             </LinkContainer>
-            <LinkContainer to='/settings/profile' activeClassName='active'>
-              <DropdownMenuItem data-e2e='settings_profileLink'>
-                <Destination>
-                  <FormattedMessage
-                    id='layouts.wallet.header.profile'
-                    defaultMessage='Profile'
-                  />
-                </Destination>
-              </DropdownMenuItem>
-            </LinkContainer>
+            <DropdownMenuItem
+              data-e2e='settings_profileLink'
+              onClick={() =>
+                props.modalActions.showModal('TRADING_LIMITS', {
+                  origin: 'TradingLimits'
+                })
+              }
+            >
+              <Destination>
+                <FormattedMessage
+                  id='layouts.wallet.header.tradinglimits'
+                  defaultMessage='Trading Limits'
+                />
+              </Destination>
+            </DropdownMenuItem>
             <LinkContainer to='/settings/preferences' activeClassName='active'>
               <DropdownMenuItem data-e2e='settings_preferencesLink'>
                 <Destination>

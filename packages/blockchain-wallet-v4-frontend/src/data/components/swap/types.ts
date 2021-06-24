@@ -1,4 +1,3 @@
-import * as AT from './actionTypes'
 import {
   CoinType,
   Erc20CoinType,
@@ -7,11 +6,18 @@ import {
   SwapOrderType,
   SwapQuoteType,
   SwapUserLimitsType
-} from 'core/types'
+} from 'blockchain-wallet-v4/src/types'
+
+import * as AT from './actionTypes'
 
 export type MempoolFeeType = 'regular' | 'priority'
 
+export enum SwapBaseCounterTypes {
+  ACCOUNT = 'ACCOUNT',
+  CUSTODIAL = 'CUSTODIAL'
+}
 export type SwapAccountType = {
+  accountIndex?: number
   address: number | string
   archived: boolean
   balance: number | string
@@ -19,12 +25,10 @@ export type SwapAccountType = {
   coin: CoinType
   index: number
   label: string
-  type: 'ACCOUNT' | 'CUSTODIAL'
+  type: SwapBaseCounterTypes
 }
 
-export type SwapAmountFormValues =
-  | { amount?: string; cryptoAmount?: string }
-  | undefined
+export type SwapAmountFormValues = { amount?: string; cryptoAmount?: string } | undefined
 
 export type InitSwapFormValuesType =
   | {
@@ -38,6 +42,7 @@ export type SwapCoinType = CoinType
 export enum SwapStepType {
   'INIT_SWAP',
   'COIN_SELECTION',
+  'NO_HOLDINGS',
   'ENTER_AMOUNT',
   'UPGRADE_PROMPT',
   'PREVIEW_SWAP',
@@ -186,25 +191,25 @@ export type SwapStepPayload =
   // added these optional payloads for data science tracking
   | {
       options?: {
-        account?: 'ACCOUNT' | 'CUSTODIAL',
-        coin?: CoinType,
+        account?: SwapBaseCounterTypes
+        coin?: CoinType
         side?: 'BASE' | 'COUNTER'
       }
       step: 'ENTER_AMOUNT'
     }
   | {
       options?: {
-        account?: 'ACCOUNT' | 'CUSTODIAL',
-        coin?: CoinType,
+        account?: SwapBaseCounterTypes
+        coin?: CoinType
         side?: 'BASE' | 'COUNTER'
       }
       step: 'INIT_SWAP'
     }
   | {
       options?: {
-        baseAccountType?: 'ACCOUNT' | 'CUSTODIAL',
-        baseCoin?: CoinType,
-        counterAccountType?: 'ACCOUNT' | 'CUSTODIAL',
+        baseAccountType?: SwapBaseCounterTypes
+        baseCoin?: CoinType
+        counterAccountType?: SwapBaseCounterTypes
         counterCoin?: CoinType
       }
       step: 'PREVIEW_SWAP'
@@ -223,6 +228,10 @@ export type SwapStepPayload =
     }
   | { options: { side: 'BASE' | 'COUNTER' }; step: 'COIN_SELECTION' }
   | { options?: never; step: 'UPGRADE_PROMPT' }
+  | {
+      options?: never
+      step: 'NO_HOLDINGS'
+    }
 
 export type SwapActionTypes =
   | FetchCustodialEligibilityFailureActionType

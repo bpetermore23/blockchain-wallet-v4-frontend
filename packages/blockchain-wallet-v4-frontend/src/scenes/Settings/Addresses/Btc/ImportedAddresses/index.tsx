@@ -1,32 +1,28 @@
-import { actions, model, selectors } from 'data'
-import { bindActionCreators } from 'redux'
-import { connect, ConnectedProps } from 'react-redux'
-import { formValueSelector } from 'redux-form'
-import { Remote } from 'blockchain-wallet-v4/src'
-import { values } from 'ramda'
-import ImportedAddresses from './template'
 import React from 'react'
+import { connect, ConnectedProps } from 'react-redux'
+import { values } from 'ramda'
+import { bindActionCreators } from 'redux'
+import { formValueSelector } from 'redux-form'
+
+import { Remote } from 'blockchain-wallet-v4/src'
+import { actions, model, selectors } from 'data'
+
+import ImportedAddresses from './template'
 const { WALLET_TX_SEARCH } = model.form
 
 class ImportedAddressesContainer extends React.Component<Props> {
-  shouldComponentUpdate (nextProps) {
+  shouldComponentUpdate(nextProps) {
     return !Remote.Loading.is(nextProps.data)
   }
 
-  handleClickImport = () => {
-    this.props.modalActions.showModal('ImportBtcAddress', {
-      origin: 'SettingsPage'
-    })
-  }
-
   handleClickVerify = () => {
-    this.props.modalActions.showModal('VerifyMessage', {
+    this.props.modalActions.showModal('VERIFY_MESSAGE_AIRDROP', {
       origin: 'SettingsPage'
     })
   }
 
   handleShowPriv = address => {
-    this.props.modalActions.showModal('ShowBtcPrivateKey', {
+    this.props.modalActions.showModal('SHOW_BTC_PRIVATE_KEY_MODAL', {
       addr: address.addr,
       balance: address.info.final_balance,
       origin: 'SettingsPage'
@@ -34,7 +30,7 @@ class ImportedAddressesContainer extends React.Component<Props> {
   }
 
   handleSignMessage = address => {
-    this.props.modalActions.showModal('SignMessage', {
+    this.props.modalActions.showModal('SIGN_MESSAGE_MODAL', {
       address: address.addr,
       origin: 'SettingsPage'
     })
@@ -57,13 +53,12 @@ class ImportedAddressesContainer extends React.Component<Props> {
     })
   }
 
-  render () {
-    const { search, addressesWithoutRemoteData } = this.props
+  render() {
+    const { addressesWithoutRemoteData, search } = this.props
     return this.props.activeAddresses.cata({
       Success: value => (
         <ImportedAddresses
           importedAddresses={value}
-          onClickImport={this.handleClickImport}
           onClickVerify={this.handleClickVerify}
           search={search && search.toLowerCase()}
           onToggleArchived={this.handleToggleArchived}
@@ -77,7 +72,6 @@ class ImportedAddressesContainer extends React.Component<Props> {
         <ImportedAddresses
           failure
           importedAddresses={values(addressesWithoutRemoteData)}
-          onClickImport={this.handleClickImport}
           onClickVerify={this.handleClickVerify}
           search={search && search.toLowerCase()}
           onShowPriv={this.handleShowPriv}

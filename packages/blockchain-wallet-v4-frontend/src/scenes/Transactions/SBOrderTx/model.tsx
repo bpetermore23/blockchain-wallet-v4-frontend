@@ -1,13 +1,13 @@
-import { FormattedMessage } from 'react-intl'
-import { getCoinFromPair, getOrderType } from 'data/components/simpleBuy/model'
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
 
-import { Props } from '.'
-import {
-  IconTx as SharedIconTx,
-  Timestamp as SharedTimestamp
-} from '../components'
 import { Text } from 'blockchain-info-components'
+import { SBPaymentTypes } from 'blockchain-wallet-v4/src/types'
+import { getCoinFromPair, getOrderType } from 'data/components/simpleBuy/model'
+import { BankTransferAccountType } from 'data/types'
+
+import { IconTx as SharedIconTx, Timestamp as SharedTimestamp } from '../components'
+import { Props } from '.'
 
 export const IconTx = (props: Props) => {
   const orderType = getOrderType(props.order)
@@ -15,20 +15,29 @@ export const IconTx = (props: Props) => {
   return <SharedIconTx type={orderType} coin={coin} />
 }
 
-export const getOrigin = (props: Props) => {
+export const getOrigin = (props: Props, bankAccounts: Array<BankTransferAccountType>) => {
   switch (props.order.paymentType) {
-    case 'FUNDS':
-      return props.order.inputCurrency + ' Wallet'
-    case 'PAYMENT_CARD':
-    case 'USER_CARD':
+    case SBPaymentTypes.FUNDS:
+      return `${props.order.inputCurrency} Account`
+    case SBPaymentTypes.PAYMENT_CARD:
+    case SBPaymentTypes.USER_CARD:
       return 'Credit/Debit Card'
-    case 'BANK_ACCOUNT':
+    case SBPaymentTypes.BANK_ACCOUNT:
       return 'Bank Transfer'
-    case 'LINK_BANK':
-    case 'BANK_TRANSFER': // LOL this is so bad
-      return 'Bank Account'
+    case SBPaymentTypes.LINK_BANK:
+    case SBPaymentTypes.BANK_TRANSFER:
+      const bankAccount = bankAccounts.find((acct) => acct.id === props.order.paymentMethodId)
+      if (bankAccount) {
+        const { details } = bankAccount
+        return `${details.bankName} ${details.bankAccountType?.toLowerCase() || ''} ${
+          details.accountNumber || ''
+        }`
+      }
+      return <FormattedMessage id='copy.bank_account' defaultMessage='Bank Account' />
     case undefined:
       return 'Unknown Payment Type'
+    default:
+      return ''
   }
 }
 
@@ -49,14 +58,6 @@ export const Status = ({ order }: Props) => {
         <FormattedMessage
           id='modals.simplebuy.transactionfeed.waitingondepo'
           defaultMessage='Pending Deposit'
-        />
-      )
-    case 'DEPOSIT_MATCHED':
-      return (
-        <FormattedMessage
-          id='modals.simplebuy.transactionfeed.pending'
-          defaultMessage='Pending {type}'
-          values={{ type: type === 'BUY' ? 'Buy' : 'Sell' }}
         />
       )
     case 'CANCELED':

@@ -1,3 +1,9 @@
+import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import Bowser from 'bowser'
+import { Field } from 'redux-form'
+import styled from 'styled-components'
+
 import {
   Banner,
   Button,
@@ -6,19 +12,6 @@ import {
   Text,
   TextGroup
 } from 'blockchain-info-components'
-import { Field } from 'redux-form'
-import { FormattedHTMLMessage, FormattedMessage } from 'react-intl'
-import {
-  required,
-  validEmail,
-  validPasswordConfirmation,
-  validStrongPassword
-} from 'services/FormHelper'
-
-import Bowser from 'bowser'
-import React from 'react'
-import styled from 'styled-components'
-
 import {
   CheckBox,
   Form,
@@ -29,6 +22,12 @@ import {
   TextBox
 } from 'components/Form'
 import Terms from 'components/Terms'
+import {
+  required,
+  validEmail,
+  validPasswordConfirmation,
+  validStrongPassword
+} from 'services/forms'
 
 const browser = Bowser.getParser(window.navigator.userAgent)
 const isSupportedBrowser = browser.satisfies({
@@ -46,7 +45,6 @@ const RegisterForm = styled(Form)`
 
   > div * {
     max-height: 26rem;
-    opacity: 1;
     z-index: 1;
     transition: all 0.5s ease;
   }
@@ -191,7 +189,7 @@ const SignupForm = ({
         <FormLabel>
           <TextGroup inline>
             <Text color='grey800' size='12px' weight={500}>
-              <FormattedHTMLMessage
+              <FormattedMessage
                 id='scenes.register.backupphrase1'
                 defaultMessage='I understand that Blockchain.com never stores passwords and therefore cannot recover or reset my password. If I lose access to my wallet, I must use my'
               />
@@ -204,12 +202,12 @@ const SignupForm = ({
               data-e2e='blockchainTermsLink'
             >
               <FormattedMessage
-                id='scenes.securitysettings.basicsecurity.recoveryphrase.title'
-                defaultMessage='Backup Phrase'
+                id='scenes.securitysettings.basicsecurity.secretrecoveryphrase.title'
+                defaultMessage='Secret Private Key Recovery Phrase'
               />
             </Link>
             <Text color='grey800' size='12px' weight={500}>
-              <FormattedHTMLMessage
+              <FormattedMessage
                 id='scenes.register.backupphrase2'
                 defaultMessage='to access my funds.'
               />

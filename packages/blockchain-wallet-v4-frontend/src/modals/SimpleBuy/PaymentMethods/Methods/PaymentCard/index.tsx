@@ -1,26 +1,20 @@
-import { FormattedMessage } from 'react-intl'
-import { Icon, Image } from 'blockchain-info-components'
 import React, { ReactElement } from 'react'
+import { FormattedMessage } from 'react-intl'
 import styled from 'styled-components'
 
+import { Icon, Image } from 'blockchain-info-components'
+import { SBPaymentMethodType } from 'blockchain-wallet-v4/src/types'
+import { SuccessCartridge } from 'components/Cartridge'
 import {
   Content,
+  Description,
   DisplayContainer,
   DisplayIcon,
+  DisplaySubTitle,
   DisplayTitle
 } from 'components/SimpleBuy'
-import { convertBaseToStandard } from 'data/components/exchange/services'
-import { fiatToString } from 'core/exchange/currency'
-import { SBPaymentMethodType } from 'core/types'
-import { SuccessCartridge } from 'components/Cartridge'
-import { Title } from 'components/Flyout'
-import media from 'services/ResponsiveService'
+import { media } from 'services/styles'
 
-const SubTitle = styled(Title)`
-  color: ${props => props.theme.grey600};
-  margin-top: 5px;
-  line-height: 21px;
-`
 const DisplayIconPayment = styled(DisplayIcon)`
   min-height: 110px;
 `
@@ -51,7 +45,7 @@ type Props = {
   value: SBPaymentMethodType
 }
 
-const PaymentCard: React.FC<Props> = ({ value, onClick, icon, text }) => (
+const PaymentCard: React.FC<Props> = ({ icon, onClick, text, value }) => (
   <DisplayContainer
     data-e2e={`sb${value.type.toLowerCase()}PaymentCard`}
     role='button'
@@ -60,28 +54,22 @@ const PaymentCard: React.FC<Props> = ({ value, onClick, icon, text }) => (
     <DisplayIconPayment>{icon}</DisplayIconPayment>
     <Content>
       <DisplayTitle>{text}</DisplayTitle>
-      <SubTitle>
+      <DisplaySubTitle>
         <FormattedMessage
-          id='modals.simplebuy.card_limit'
-          defaultMessage='{card} Limit'
-          values={{
-            card: `${fiatToString({
-              value: convertBaseToStandard('FIAT', value.limits.max),
-              unit: value.currency
-            })} ${value.currency}`
-          }}
+          id='copy.instantly_available'
+          defaultMessage='Instantly Available'
         />
-      </SubTitle>
-      <SubTitle>
+      </DisplaySubTitle>
+      <Description>
         <FormattedMessage
           id='modals.simplebuy.instantly_buy'
           defaultMessage='Instantly buy crypto with any Visa or Mastercard.'
         />
-      </SubTitle>
+      </Description>
       <CartridgeContainer>
         <SuccessCartridge>
           <FormattedMessage
-            id='modals.simplebuy.most_popular'
+            id='copy.most_popular'
             defaultMessage='Most Popular'
           />
         </SuccessCartridge>

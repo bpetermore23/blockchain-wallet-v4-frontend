@@ -1,9 +1,9 @@
-import { Button, Icon, Link, Text } from 'blockchain-info-components'
-import { FormattedHTMLMessage, FormattedMessage } from 'react-intl'
-import { Wrapper } from 'components/Public'
-import media from 'services/ResponsiveService'
 import React from 'react'
-import styled, { DefaultTheme } from 'styled-components'
+import { FormattedMessage } from 'react-intl'
+import styled from 'styled-components'
+
+import { Button, Icon, Link, Text } from 'blockchain-info-components'
+import { Wrapper } from 'components/Public'
 
 const ContentWrapper = styled.div`
   display: flex;
@@ -11,19 +11,14 @@ const ContentWrapper = styled.div`
   align-items: center;
   flex-direction: column;
 `
-const IconWrapper = styled.div<{ color: keyof DefaultTheme }>`
+const IconWrapper = styled.div`
   display: flex;
-  background: ${props => props.theme[props.color]};
+  background: ${props => props.theme['blue600']};
   height: 40px;
   width: 40px;
   justify-content: center;
   align-items: center;
   border-radius: 50%;
-  margin-right: 20px;
-
-  ${media.tablet`
-    flex-shrink: 0;
-  `}
 `
 
 const VerifyEmail = ({ email, resendEmail, skipVerification }: Props) => {
@@ -31,7 +26,7 @@ const VerifyEmail = ({ email, resendEmail, skipVerification }: Props) => {
     <>
       <Wrapper>
         <ContentWrapper>
-          <IconWrapper color='blue600'>
+          <IconWrapper>
             <Icon color='white' name='email' size='24px' />
           </IconWrapper>
           <Text
@@ -51,7 +46,7 @@ const VerifyEmail = ({ email, resendEmail, skipVerification }: Props) => {
             size='16px'
             weight={500}
           >
-            <FormattedHTMLMessage
+            <FormattedMessage
               id='scenes.verifyemail.description'
               defaultMessage='We sent a verification email to: <b>{email}</b>. Please click the link in the email to continue.'
               values={{

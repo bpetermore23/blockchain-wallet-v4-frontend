@@ -1,17 +1,17 @@
-import { actions } from 'data'
-import { bindActionCreators, Dispatch } from 'redux'
-import { connect, ConnectedProps } from 'react-redux'
 import React, { Component } from 'react'
+import { connect, ConnectedProps } from 'react-redux'
+import { bindActionCreators, Dispatch } from 'redux'
 import styled from 'styled-components'
 
-import { getData } from './selectors'
-
 import { SceneWrapper } from 'components/Layout'
+import LazyLoadContainer from 'components/LazyLoadContainer'
+import { actions } from 'data'
 
-import CoinFilter from './CoinFilter'
 import InterestHeader from '../Interest/template.header'
 import InterestMenu from '../Interest/template.menu'
-import LazyLoadContainer from 'components/LazyLoadContainer'
+import CoinFilter from './CoinFilter'
+import DownloadTransactions from './DownloadTransactions'
+import { getData } from './selectors'
 import Loading from './template.loading'
 import TransactionList from './template.success'
 
@@ -32,11 +32,11 @@ const MenuRow = styled.div`
 `
 
 class InterestHistoryContainer extends Component<Props> {
-  componentDidMount () {
+  componentDidMount() {
     this.props.interestActions.fetchInterestTransactions(true)
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     // clear transactions related data on exit
     this.props.interestActions.fetchInterestTransactionsSuccess([], true)
     this.props.interestActions.setTransactionsNextPage(null)
@@ -46,23 +46,26 @@ class InterestHistoryContainer extends Component<Props> {
     this.props.interestActions.fetchInterestTransactions(false)
   }
 
-  render () {
+  render() {
     const { data } = this.props
     return (
       <SceneWrapper>
         <InterestHeader />
         {data.cata({
-          Success: val => (
-            <>
-              <MenuRow>
-                <InterestMenu />
-                <CoinFilter {...val} />
-              </MenuRow>
-              <LazyLoadWrapper onLazyLoad={this.onFetchMoreTransactions}>
-                <TransactionList {...val} {...this.props} />
-              </LazyLoadWrapper>
-            </>
-          ),
+          Success: val => {
+            return (
+              <>
+                <MenuRow>
+                  <InterestMenu />
+                  <DownloadTransactions />
+                  <CoinFilter {...val} />
+                </MenuRow>
+                <LazyLoadWrapper onLazyLoad={this.onFetchMoreTransactions}>
+                  <TransactionList {...val} {...this.props} />
+                </LazyLoadWrapper>
+              </>
+            )
+          },
           Failure: () => null,
           Loading: () => <Loading />,
           NotAsked: () => <Loading />

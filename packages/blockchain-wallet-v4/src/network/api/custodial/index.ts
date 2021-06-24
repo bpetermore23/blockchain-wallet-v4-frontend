@@ -1,4 +1,5 @@
 import { CoinType, SBPaymentTypes, WalletFiatType } from 'core/types'
+import { BankTransferAccountType, ProductEligibility } from 'data/types'
 
 import {
   BeneficiariesType,
@@ -47,7 +48,7 @@ export default ({ authorizedGet, authorizedPost, nabuUrl }) => {
     })
 
   const withdrawFunds = (
-    beneficiary: BeneficiaryType,
+    beneficiary: BeneficiaryType | BankTransferAccountType,
     currency: WalletFiatType,
     baseAmount: string
   ): WithdrawResponseType =>
@@ -66,23 +67,29 @@ export default ({ authorizedGet, authorizedPost, nabuUrl }) => {
     })
 
   const getWithdrawalFees = (
-    product: WithdrawalFeesProductType
+    product: WithdrawalFeesProductType,
+    paymentMethod?: SBPaymentTypes | 'DEFAULT' | 'ALL'
   ): WithdrawalMinsAndFeesResponse =>
     authorizedGet({
       url: nabuUrl,
-      ignoreQueryParams: true,
-      endPoint: `/payments/withdrawals/fees?product=${product}`
+      data: {
+        paymentMethod,
+        product
+      },
+      endPoint: `/payments/withdrawals/fees`
     })
 
   const checkWithdrawalLocks = (
-    paymentMethod: SBPaymentTypes
+    paymentMethod: SBPaymentTypes,
+    currency: WalletFiatType
   ): WithdrawalLockCheckResponseType =>
     authorizedPost({
       url: nabuUrl,
       endPoint: '/payments/withdrawals/locks/check',
       contentType: 'application/json',
       data: {
-        paymentMethod
+        paymentMethod,
+        currency
       }
     })
 
@@ -94,9 +101,16 @@ export default ({ authorizedGet, authorizedPost, nabuUrl }) => {
       data: request
     })
 
+  const getProductsEligibility = (): ProductEligibility[] =>
+    authorizedGet({
+      url: nabuUrl,
+      endPoint: '/eligible/products'
+    })
+
   return {
     checkWithdrawalLocks,
     getBeneficiaries,
+    getProductsEligibility,
     getWithdrawalLocks,
     getWithdrawalFees,
     initiateCustodialTransfer,

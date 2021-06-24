@@ -1,15 +1,14 @@
-import { bindActionCreators, Dispatch } from 'redux'
-import { concat, equals, prop } from 'ramda'
-import { connect } from 'react-redux'
-import { FormattedMessage } from 'react-intl'
-import { LinkContainer } from 'react-router-bootstrap'
 import React, { PureComponent } from 'react'
+import { FormattedMessage } from 'react-intl'
+import { connect } from 'react-redux'
+import { concat, equals, prop } from 'ramda'
+import { bindActionCreators, Dispatch } from 'redux'
 import styled, { css } from 'styled-components'
 
-import { actions, model, selectors } from 'data'
 import { Icon, Link, Text } from 'blockchain-info-components'
+import { WalletOptionsType } from 'blockchain-wallet-v4/src/types'
+import { actions, model, selectors } from 'data'
 import { RootState } from 'data/rootReducer'
-import { WalletOptionsType } from 'core/types'
 
 const Wrapper = styled.div`
   display: flex;
@@ -61,7 +60,7 @@ type Props = LinkStatePropsType & LinkDispatchPropsType
 class ExchangePromo extends PureComponent<Props> {
   onSignup = () => {
     this.props.modalActions.closeAllModals()
-    this.props.modalActions.showModal('LinkToExchangeAccount', {
+    this.props.modalActions.showModal('LINK_TO_EXCHANGE_ACCOUNT_MODAL', {
       origin: 'SendExchangePromo'
     })
     this.props.analyticsActions.logEvent([
@@ -70,7 +69,7 @@ class ExchangePromo extends PureComponent<Props> {
     ])
   }
 
-  render () {
+  render() {
     const { domains, isExchangeLinked, isGoldVerified } = this.props
     const exchangeUrl = concat(prop('exchange', domains), '/trade')
 
@@ -138,15 +137,17 @@ class ExchangePromo extends PureComponent<Props> {
             </ConnectContainer>
           )
         ) : (
-          <LinkContainer
+          <ConnectContainer
             data-e2e='goSettingsProfile'
-            to='/settings/profile'
-            onClick={() =>
+            onClick={() => {
               this.props.analyticsActions.logEvent([
                 ...EXCHANGE_EVENTS.PROMO,
                 'verify_account_promo_clicked'
               ])
-            }
+              this.props.modalActions.showModal('TRADING_LIMITS', {
+                origin: 'TradingLimits'
+              })
+            }}
           >
             <GetStartedContainer>
               <Text color='blue600' size='14px' weight={600}>
@@ -162,7 +163,7 @@ class ExchangePromo extends PureComponent<Props> {
                 weight={500}
               />
             </GetStartedContainer>
-          </LinkContainer>
+          </ConnectContainer>
         )}
       </Wrapper>
     )

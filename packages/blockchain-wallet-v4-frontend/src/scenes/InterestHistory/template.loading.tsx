@@ -1,9 +1,9 @@
-import { SceneWrapper } from 'components/Layout'
-import { SpinningLoader, Text } from 'blockchain-info-components'
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
 import styled from 'styled-components'
 
-type Props = {}
+import { SpinningLoader, Text } from 'blockchain-info-components'
+import { SceneWrapper } from 'components/Layout'
 
 const Wrapper = styled.div`
   display: flex;
@@ -11,22 +11,15 @@ const Wrapper = styled.div`
   align-items: center;
 `
 
-const Loading: React.FC<Props> = () => {
-  return (
-    <SceneWrapper centerContent>
-      <Wrapper>
-        <SpinningLoader width='36px' height='36px' />
-        <Text
-          size='18px'
-          weight={600}
-          color='grey600'
-          style={{ marginTop: '16px' }}
-        >
-          Doing Work...
-        </Text>
-      </Wrapper>
-    </SceneWrapper>
-  )
-}
+const Loading = () => (
+  <SceneWrapper centerContent>
+    <Wrapper>
+      <SpinningLoader width='36px' height='36px' />
+      <Text size='18px' weight={600} color='grey600' style={{ marginTop: '16px' }}>
+        <FormattedMessage id='modals.interest.withdrawal.loading' defaultMessage='Doing Work...' />
+      </Text>
+    </Wrapper>
+  </SceneWrapper>
+)
 
 export default Loading

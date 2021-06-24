@@ -1,10 +1,5 @@
-import * as A from './actions'
-import * as AT from './actionTypes'
-import * as Exchange from '../../../exchange'
-import * as kvStoreSelectors from '../../kvStore/eth/selectors'
-import * as S from './selectors'
-import * as selectors from '../../selectors'
-import * as transactions from '../../../transactions'
+import BigNumber from 'bignumber.js'
+import moment from 'moment'
 import {
   addIndex,
   concat,
@@ -28,22 +23,29 @@ import {
   toUpper,
   values
 } from 'ramda'
-import { calculateFee } from 'blockchain-wallet-v4/src/utils/eth'
 import { call, put, select, take } from 'redux-saga/effects'
+
+import { errorHandler } from 'blockchain-wallet-v4/src/utils'
+import { calculateFee } from 'blockchain-wallet-v4/src/utils/eth'
+import { EthRawTxType } from 'core/network/api/eth/types'
+import { EthProcessedTxType } from 'core/transactions/types'
 import {
   Erc20CoinType,
   FetchCustodialOrdersAndTransactionsReturnType
 } from 'core/types'
-import { errorHandler } from 'blockchain-wallet-v4/src/utils'
-import { EthProcessedTxType } from 'core/transactions/types'
-import { EthRawTxType } from 'core/network/api/eth/types'
+
+import * as Exchange from '../../../exchange'
+import * as transactions from '../../../transactions'
+import * as kvStoreSelectors from '../../kvStore/eth/selectors'
 import { getLockboxEthContext } from '../../kvStore/lockbox/selectors'
-import BigNumber from 'bignumber.js'
+import * as selectors from '../../selectors'
 import custodialSagas from '../custodial/sagas'
-import moment from 'moment'
-const { transformTx, transformErc20Tx } = transactions.eth
-const TX_PER_PAGE = 10
-const TX_REPORT_PAGE_SIZE = 50
+import * as A from './actions'
+import * as AT from './actionTypes'
+import * as S from './selectors'
+const { transformErc20Tx, transformTx } = transactions.eth
+const TX_PER_PAGE = 50
+const TX_REPORT_PAGE_SIZE = 500
 const CONTEXT_FAILURE = 'Could not get ETH context.'
 
 export default ({ api }) => {
@@ -194,7 +196,6 @@ export default ({ api }) => {
         fullTxList = fullTxList.concat(prop('transactions', txPage))
         currentPage++
       }
-
       // process txs further for report
       const processedTxList = yield call(
         __processReportTxs,
@@ -288,7 +289,7 @@ export default ({ api }) => {
   }
 
   const fetchErc20Transactions = function * (action) {
-    const { token, reset } = action.payload
+    const { reset, token } = action.payload
     try {
       const defaultAccountR = yield select(selectors.kvStore.eth.getContext)
       const ethAddress = defaultAccountR.getOrFail(CONTEXT_FAILURE)
@@ -436,7 +437,7 @@ export default ({ api }) => {
     const ethAddresses = concat(addresses, lockboxContext)
     return map(transformErc20Tx(ethAddresses, state, token), txs)
   }
-  const __buildTransactionReportModel = function (
+  const __buildTransactionReportModel = function(
     prunedTxList,
     historicalPrices,
     currentPrices,
@@ -540,7 +541,7 @@ export default ({ api }) => {
     // remove txs that dont match coin type and are not within date range
     let prunedTxList = filter(tx => {
       // @ts-ignore
-      return !tx.erc20 && moment.unix(tx.time).isBetween(startDate, endDate)
+      return moment.unix(tx.time).isBetween(startDate, endDate)
     }, fullTxList)
 
     // return empty list if no tx found in filter set

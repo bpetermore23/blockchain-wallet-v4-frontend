@@ -1,13 +1,10 @@
-import {
-  accountCreationAmount,
-  balanceReserveAmount,
-  insufficientFunds,
-  invalidAmount,
-  shouldError,
-  shouldWarn,
-  validateMemo,
-  validateMemoType
-} from './validation'
+import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import Bowser from 'bowser'
+import PropTypes from 'prop-types'
+import { Field, reduxForm } from 'redux-form'
+import styled from 'styled-components'
+
 import {
   Banner,
   Button,
@@ -16,9 +13,8 @@ import {
   TooltipHost,
   TooltipIcon
 } from 'blockchain-info-components'
-import { CustodyToAccountMessage, Row } from 'components/Send'
-import { ErrorBanner } from './ErrorBanner'
-import { Field, reduxForm } from 'redux-form'
+import { Remote } from 'blockchain-wallet-v4/src'
+import ComboDisplay from 'components/Display/ComboDisplay'
 import {
   Form,
   FormGroup,
@@ -29,22 +25,28 @@ import {
   TextAreaDebounced,
   TextBox
 } from 'components/Form'
-import { FormattedMessage } from 'react-intl'
-import { InfoBanner } from './InfoBanner'
-import { model } from 'data'
-import { NoAccountTemplate } from './NoAccountTemplate'
-import { Remote } from 'blockchain-wallet-v4/src'
-import { required, validXlmAddress } from 'services/FormHelper'
-import { SelectBoxMemo } from './SelectBoxMemo'
-import { XlmFiatConverter } from './XlmFiatConverter'
-import Bowser from 'bowser'
-import ComboDisplay from 'components/Display/ComboDisplay'
-import ExchangePromo from 'components/Send/ExchangePromo'
-import MnemonicRequiredForCustodySend from 'components/Send/RecoveryPhrase'
-import PropTypes from 'prop-types'
 import QRCodeCapture from 'components/QRCode/Capture'
-import React from 'react'
-import styled from 'styled-components'
+import { CustodyToAccountMessage, Row } from 'components/Send'
+import MnemonicRequiredForCustodySend from 'components/Send/RecoveryPhrase'
+import UnstoppableDomains from 'components/UnstoppableDomains'
+import { model } from 'data'
+import { required, validXlmAddress } from 'services/forms'
+
+import { ErrorBanner } from './ErrorBanner'
+import { InfoBanner } from './InfoBanner'
+import { NoAccountTemplate } from './NoAccountTemplate'
+import { SelectBoxMemo } from './SelectBoxMemo'
+import {
+  accountCreationAmount,
+  balanceReserveAmount,
+  insufficientFunds,
+  invalidAmount,
+  shouldError,
+  shouldWarn,
+  validateMemo,
+  validateMemoType
+} from './validation'
+import { XlmFiatConverter } from './XlmFiatConverter'
 
 const SubmitFormGroup = styled(FormGroup)`
   margin-top: 16px;
@@ -167,20 +169,17 @@ const FirstStep = props => {
                 <Field
                   component={SelectBoxXlmAddresses}
                   dataE2e='sendXlmAddressInput'
-                  exclude={[from.label]}
+                  exclude={from ? [from.label] : []}
                   includeAll={false}
-                  includeExchangeAddress={!isFromCustody}
-                  isCreatable={!isFromCustody}
+                  includeExchangeAddress
+                  isCreatable
                   isValidNewOption={() => false}
                   name='to'
                   noOptionsMessage={() => null}
-                  openMenuOnClick={!!isFromCustody}
                   includeCustodial={!isFromCustody}
-                  forceCustodialFirst={!isFromCustody}
+                  forceCustodialFirst
                   placeholder='Paste, scan, or select destination'
-                  validate={
-                    isFromCustody ? [required] : [required, validXlmAddress]
-                  }
+                  validate={[required, validXlmAddress]}
                 />
                 {!isFromCustody && (
                   <QRCodeCapture
@@ -191,17 +190,14 @@ const FirstStep = props => {
               </Row>
             </FormItem>
           </FormGroup>
-          {isFromCustody && isMnemonicVerified ? (
-            <FormGroup>
-              <CustodyToAccountMessage
-                coin={'XLM'}
-                account={from}
-                amount={amount}
-              />
-            </FormGroup>
-          ) : (
-            <ExchangePromo />
-          )}
+          <UnstoppableDomains form={model.components.sendXlm.FORM} />
+          <FormGroup>
+            <CustodyToAccountMessage
+              coin={'XLM'}
+              account={from}
+              amount={amount}
+            />
+          </FormGroup>
           <FormGroup margin={'15px'}>
             <FormItem>
               <FormLabel htmlFor='amount'>
@@ -307,23 +303,21 @@ const FirstStep = props => {
               />
             </FormItem>
           </FormGroup>
-          {!isFromCustody && (
-            <FormGroup inline margin={'10px'}>
-              <FormItem>
-                <Text size='16px' weight={500}>
-                  <FormattedMessage
-                    id='modals.sendxlm.firststep.fee'
-                    defaultMessage='Transaction Fee:'
-                  />
-                </Text>
-                <Text>
-                  <ComboDisplay size='13px' coin='XLM' weight={500}>
-                    {fee}
-                  </ComboDisplay>
-                </Text>
-              </FormItem>
-            </FormGroup>
-          )}
+          <FormGroup inline margin={'10px'}>
+            <FormItem>
+              <Text size='16px' weight={500}>
+                <FormattedMessage
+                  id='modals.sendxlm.firststep.fee'
+                  defaultMessage='Transaction Fee:'
+                />
+              </Text>
+              <Text>
+                <ComboDisplay size='13px' coin='XLM' weight={500}>
+                  {fee}
+                </ComboDisplay>
+              </Text>
+            </FormItem>
+          </FormGroup>
           {isFromCustody && !isMnemonicVerified ? (
             <MnemonicRequiredForCustodySend />
           ) : null}

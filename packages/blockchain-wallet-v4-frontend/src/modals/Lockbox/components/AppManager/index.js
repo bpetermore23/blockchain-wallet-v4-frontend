@@ -1,20 +1,21 @@
-import { bindActionCreators } from 'redux'
-import { connect } from 'react-redux'
-import { FormattedHTMLMessage } from 'react-intl'
-import PropTypes from 'prop-types'
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import { connect } from 'react-redux'
+import PropTypes from 'prop-types'
+import { bindActionCreators } from 'redux'
 import styled from 'styled-components'
 
-import * as Lockbox from 'services/LockboxService'
-import { actions, selectors } from 'data'
 import {
   BlockchainLoader,
   Button,
   Image,
   Text
 } from 'blockchain-info-components'
-import { FAIL_STATUS_TIMEOUT, SUCCESS_STATUS_TIMEOUT } from './model'
 import { Remote } from 'blockchain-wallet-v4/src'
+import { actions, selectors } from 'data'
+import * as Lockbox from 'services/lockbox'
+
+import { FAIL_STATUS_TIMEOUT, SUCCESS_STATUS_TIMEOUT } from './model'
 import LockboxAppManager from './template'
 
 const Wrapper = styled.div`
@@ -58,11 +59,11 @@ const getKeyByValue = value => {
 class LockboxAppManagerContainer extends React.PureComponent {
   state = {}
 
-  componentDidMount () {
+  componentDidMount() {
     this.props.lockboxActions.initializeAppManager(this.props.deviceIndex)
   }
 
-  componentDidUpdate (prevProps) {
+  componentDidUpdate(prevProps) {
     if (this.props.appChangeStatus !== prevProps.appChangeStatus) {
       this.props.appChangeStatus.cata({
         Success: val => {
@@ -97,7 +98,7 @@ class LockboxAppManagerContainer extends React.PureComponent {
     }
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     this.props.lockboxActions.resetAppChangeStatus()
   }
 
@@ -123,7 +124,7 @@ class LockboxAppManagerContainer extends React.PureComponent {
     this.props.lockboxActions.uninstallApplication(appName)
   }
 
-  render () {
+  render() {
     const { appChangeStatus, appVersionInfos, connection } = this.props
     const disableButtons = !Remote.NotAsked.is(appChangeStatus)
     const appListView = appVersionInfos.cata({
@@ -152,14 +153,14 @@ class LockboxAppManagerContainer extends React.PureComponent {
           <React.Fragment>
             {appList}
             <AllowManagerText size='11px' weight={400}>
-              <FormattedHTMLMessage
+              <FormattedMessage
                 id='components.lockbox.appmanager.prompt'
                 defaultMessage='If prompted, be sure to allow the "Device Manager" onto the device during app updates.'
               />
             </AllowManagerText>
             {this.props.newDevice && (
               <BtcRequiredText size='10px' weight={400}>
-                <FormattedHTMLMessage
+                <FormattedMessage
                   id='components.lockbox.appmanager.btcrequired'
                   defaultMessage='The Bitcoin app is needed to connect your Lockbox to your wallet.'
                 />
@@ -178,7 +179,7 @@ class LockboxAppManagerContainer extends React.PureComponent {
       },
       Failure: () => (
         <Text size='16px' weight={400}>
-          <FormattedHTMLMessage
+          <FormattedMessage
             id='components.lockbox.appmanager.appfailure'
             defaultMessage='Failed to load application list. Please try again later.'
           />
@@ -202,13 +203,13 @@ class LockboxAppManagerContainer extends React.PureComponent {
           <ConnectStep>
             <Image width='100%' name='lockbox-onboard-connect' />
             <ConnectInstructions size='14px' weight={400}>
-              <FormattedHTMLMessage
+              <FormattedMessage
                 id='components.lockbox.appmanager.connectdevice'
                 defaultMessage='Connect, unlock and open the Dashboard on your Lockbox device now.'
               />
             </ConnectInstructions>
             <ContinueButton disabled nature='primary' fullwidth>
-              <FormattedHTMLMessage
+              <FormattedMessage
                 id='components.lockbox.appmanager.waiting'
                 defaultMessage='Waiting...'
               />

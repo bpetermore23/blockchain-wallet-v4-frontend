@@ -1,6 +1,7 @@
+import { ModalNamesType, ModalParamPropsType } from 'data/modals/types'
+
 import * as AT from './actionTypes'
 import { GoalsType } from './types'
-import { ModalNamesType } from 'data/modals/types'
 
 const generateId = () =>
   Math.random()
@@ -18,10 +19,14 @@ export const deleteGoal = (id: string) => ({
 export const addInitialModal = (
   key: string,
   name: ModalNamesType,
-  data?: any
+  data: ModalParamPropsType
 ) => ({
   type: AT.ADD_INITIAL_MODAL,
   payload: { key, name, data }
+})
+export const addInitialRedirect = (path: string) => ({
+  type: AT.ADD_INITIAL_REDIRECT,
+  payload: { path }
 })
 export const initialModalDisplayed = {
   type: AT.INITIAL_MODAL_DISPLAYED

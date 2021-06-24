@@ -1,8 +1,10 @@
-import { actions } from 'data'
-import { Badge, Button, Text } from 'blockchain-info-components'
-import { bindActionCreators } from 'redux'
-import { connect, ConnectedProps } from 'react-redux'
+import React from 'react'
 import { FormattedMessage } from 'react-intl'
+import { connect, ConnectedProps } from 'react-redux'
+import { bindActionCreators } from 'redux'
+import styled from 'styled-components'
+
+import { Badge, Button, Text } from 'blockchain-info-components'
 import {
   SettingComponent,
   SettingContainer,
@@ -10,8 +12,7 @@ import {
   SettingHeader,
   SettingSummary
 } from 'components/Setting'
-import React from 'react'
-import styled from 'styled-components'
+import { actions } from 'data'
 
 const BadgesContainer = styled.div`
   display: block;
@@ -24,10 +25,12 @@ const BadgesContainer = styled.div`
 
 class PairingCode extends React.PureComponent<Props> {
   onShowCode = () => {
-    this.props.modalActions.showModal('PairingCode', { origin: 'SettingsPage' })
+    this.props.modalActions.showModal('PAIRING_CODE_MODAL', {
+      origin: 'SettingsPage'
+    })
   }
 
-  render () {
+  render() {
     return (
       <SettingContainer>
         <SettingSummary>

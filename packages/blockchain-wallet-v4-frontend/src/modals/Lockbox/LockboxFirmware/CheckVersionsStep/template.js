@@ -1,5 +1,5 @@
-import { FormattedMessage } from 'react-intl'
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
 import styled from 'styled-components'
 
 import { BlockchainLoader, Button, Text } from 'blockchain-info-components'
@@ -61,10 +61,7 @@ const CheckVersionsStep = props => {
       <ButtonContainer>
         {status ? (
           <Button fullwidth nature='primary' onClick={onStartInstall}>
-            <FormattedMessage
-              id='buttons.continue'
-              defaultMessage='Install Update'
-            />
+            Install Update
           </Button>
         ) : (
           <Button fullwidth disabled nature='dark'>

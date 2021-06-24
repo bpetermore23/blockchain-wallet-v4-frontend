@@ -1,16 +1,14 @@
 import { lift } from 'ramda'
 
-import { ExtractSuccess } from 'core/types'
-import { RootState } from 'data/rootReducer'
+import { ExtractSuccess, SBPaymentTypes } from 'blockchain-wallet-v4/src/types'
 import { selectors } from 'data'
+import { RootState } from 'data/rootReducer'
 
 import { OwnProps } from '.'
 
-export const getData = (state: RootState, ownProps: OwnProps) => {
+const getData = (state: RootState, ownProps: OwnProps) => {
   const coin = selectors.components.simpleBuy.getCryptoCurrency(state) || 'BTC'
-  const formErrors = selectors.form.getFormSyncErrors('simpleBuyCheckout')(
-    state
-  )
+  const formErrors = selectors.form.getFormSyncErrors('simpleBuyCheckout')(state)
   // used for sell only now, eventually buy as well
   // TODO: use swap2 quote for buy AND sell
   const paymentR = selectors.components.simpleBuy.getPayment(state)
@@ -23,20 +21,17 @@ export const getData = (state: RootState, ownProps: OwnProps) => {
   const userDataR = selectors.modules.profile.getUserData(state)
   const sddEligibleR = selectors.components.simpleBuy.getSddEligible(state)
   const supportedCoinsR = selectors.core.walletOptions.getSupportedCoins(state)
-  const userSDDTierR = selectors.components.simpleBuy.getUserSddEligibleTier(
-    state
-  )
-  const sddLimitR = selectors.components.simpleBuy.getUserSddLimit(state)
+  const userSDDTierR = selectors.components.simpleBuy.getUserSddEligibleTier(state)
+  const sddLimitR = selectors.components.simpleBuy.getUserLimit(state, SBPaymentTypes.PAYMENT_CARD)
   const cardsR = selectors.components.simpleBuy.getSBCards(state) || []
-  const bankTransferAccountsR = selectors.components.simpleBuy.getBankTransferAccounts(
-    state
-  )
-  const sddLimitsR = selectors.components.simpleBuy.getSddLimits(state)
+  const bankTransferAccounts = selectors.components.brokerage
+    .getBankTransferAccounts(state)
+    .getOrElse([])
+  const limitsR = selectors.components.simpleBuy.getLimits(state)
   const hasFiatBalance = selectors.components.simpleBuy.hasFiatBalances(state)
 
   return lift(
     (
-      bankTransferAccounts: ExtractSuccess<typeof bankTransferAccountsR>,
       cards: ExtractSuccess<typeof cardsR>,
       quote: ExtractSuccess<typeof quoteR>,
       rates: ExtractSuccess<typeof ratesR>,
@@ -52,9 +47,9 @@ export const getData = (state: RootState, ownProps: OwnProps) => {
       coinModel: supportedCoins[coin],
       formErrors,
       hasFiatBalance,
-      hasPaymentAccount:
-        hasFiatBalance || cards.length > 0 || bankTransferAccounts.length > 0,
+      hasPaymentAccount: hasFiatBalance || cards.length > 0 || bankTransferAccounts.length > 0,
       isSddFlow: sddEligible.eligible || userSDDTier === 3,
+      limits: limitsR.getOrElse(undefined),
       payment: paymentR.getOrElse(undefined),
       quote,
       rates,
@@ -62,11 +57,9 @@ export const getData = (state: RootState, ownProps: OwnProps) => {
       sddEligible,
       sddLimit,
       supportedCoins,
-      userData,
-      sddLimits: sddLimitsR.getOrElse(undefined)
+      userData
     })
   )(
-    bankTransferAccountsR,
     cardsR,
     quoteR,
     ratesR,
@@ -78,3 +71,5 @@ export const getData = (state: RootState, ownProps: OwnProps) => {
     userSDDTierR
   )
 }
+
+export default getData

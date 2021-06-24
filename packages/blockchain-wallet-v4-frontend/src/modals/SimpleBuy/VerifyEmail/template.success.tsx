@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { FormattedMessage } from 'react-intl'
+import { Field, InjectedFormProps, reduxForm } from 'redux-form'
 import styled, { DefaultTheme } from 'styled-components'
 
 import {
@@ -8,13 +10,12 @@ import {
   Link,
   Text
 } from 'blockchain-info-components'
-import { Field, InjectedFormProps, reduxForm } from 'redux-form'
 import { FlyoutWrapper } from 'components/Flyout'
 import { Form, FormGroup, FormItem, TextBox } from 'components/Form'
-import { FormattedHTMLMessage, FormattedMessage } from 'react-intl'
 import { model } from 'data'
+import { required, validEmail } from 'services/forms'
+
 import { Props as OwnProps } from '.'
-import { required, validEmail } from 'services/FormHelper'
 
 const { SB_CHANGE_EMAIL_FORM } = model.components.simpleBuy
 
@@ -169,7 +170,7 @@ const Template: React.FC<InjectedFormProps<{}, Props> & Props> = props => {
                 size='16px'
                 weight={500}
               >
-                <FormattedHTMLMessage
+                <FormattedMessage
                   id='scenes.verifyemail.description'
                   defaultMessage='We sent a verification email to: <b>{email}</b>. Please click the link in the email to continue.'
                   values={{

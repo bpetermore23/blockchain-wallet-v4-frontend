@@ -1,15 +1,4 @@
-import {
-  Address,
-  AddressBook,
-  AddressBookEntry,
-  AddressMap,
-  HDAccount,
-  HDAccountList,
-  HDWallet,
-  HDWalletList,
-  TXNotes,
-  Wallet
-} from '../types'
+import moment from 'moment'
 import {
   allPass,
   always,
@@ -32,8 +21,20 @@ import {
   toLower,
   view
 } from 'ramda'
-import moment from 'moment'
+
 import Remote from '../remote'
+import {
+  Address,
+  AddressBook,
+  AddressBookEntry,
+  AddressMap,
+  HDAccount,
+  HDAccountList,
+  HDWallet,
+  HDWalletList,
+  TXNotes,
+  Wallet
+} from '../types'
 
 const unpackInput = prop('prev_out')
 const isLegacy = (wallet, coin) =>
@@ -72,7 +73,8 @@ const tagCoin = curry((wallet, accountList, coin) => {
         change: isAccountChange(coin),
         coinType: accountPath(index, coin),
         label: HDAccount.selectLabel(account),
-        isWatchOnly: HDAccount.isWatchOnly(account),
+        // TODO: SEGWIT, is this needed?
+        // isWatchOnly: HDAccount.isWatchOnly(account),
         receiveIndex: receiveIndex(coin) // only if change?
       }
     case isLegacy(wallet, coin):

@@ -1,29 +1,28 @@
-import { actions, model, selectors } from 'data'
-import { bindActionCreators } from 'redux'
-import { connect, ConnectedProps } from 'react-redux'
-import { duration } from 'components/Flyout'
 import React from 'react'
+import { connect, ConnectedProps } from 'react-redux'
+import { bindActionCreators } from 'redux'
+
+import { actions, model, selectors } from 'data'
+
 import VerifyEmail from './template'
 
 const { DISMISS_VERIFICATION, EMAIL_VERIFIED } = model.analytics.AB_TEST_EVENTS
 
-class VerifyEmailContainer extends React.PureComponent<PropsType, {}> {
-  state = {}
-
-  static getDerivedStateFromProps (nextProps) {
+class VerifyEmailContainer extends React.PureComponent<Props> {
+  static getDerivedStateFromProps(nextProps) {
     if (nextProps.isEmailVerified) {
       nextProps.authActions.setRegisterEmail(undefined)
       nextProps.routerActions.push('/home')
       nextProps.analyticsActions.logEvent(EMAIL_VERIFIED)
-      setTimeout(() => {
-        nextProps.simpleBuyActions.showModal('WelcomeModal')
-      }, duration)
+      // for first time login users we need to run goal since this is a first page we show them
+      nextProps.saveGoal('welcomeModal', { firstLogin: true })
+      nextProps.runGoals()
     }
     return null
   }
 
   onResendEmail = () => {
-    const { securityCenterActions, email } = this.props
+    const { email, securityCenterActions } = this.props
     securityCenterActions.resendVerifyEmail(email)
   }
 
@@ -31,12 +30,12 @@ class VerifyEmailContainer extends React.PureComponent<PropsType, {}> {
     this.props.authActions.setRegisterEmail(undefined)
     this.props.analyticsActions.logEvent(DISMISS_VERIFICATION)
     this.props.routerActions.push('/home')
-    setTimeout(() => {
-      this.props.simpleBuyActions.showModal('WelcomeModal')
-    }, duration)
+    // for first time login users we need to run goal since this is a first page we show them
+    this.props.saveGoal('welcomeModal', { firstLogin: true })
+    this.props.runGoals()
   }
 
-  render () {
+  render() {
     return (
       <VerifyEmail
         {...this.props}
@@ -47,28 +46,24 @@ class VerifyEmailContainer extends React.PureComponent<PropsType, {}> {
   }
 }
 
-const mapStateToProps = state => ({
-  email: selectors.auth.getRegisterEmail(state),
+const mapStateToProps = (state) => ({
   appEnv: selectors.core.walletOptions.getAppEnv(state).getOrElse('prod'),
-  isEmailVerified: selectors.core.settings
-    .getEmailVerified(state)
-    .getOrElse(false)
+  email: selectors.auth.getRegisterEmail(state) as string,
+  isEmailVerified: selectors.core.settings.getEmailVerified(state).getOrElse(false)
 })
 
-const mapDispatchToProps = dispatch => ({
-  miscActions: bindActionCreators(actions.core.data.misc, dispatch),
-  securityCenterActions: bindActionCreators(
-    actions.modules.securityCenter,
-    dispatch
-  ),
-  routerActions: bindActionCreators(actions.router, dispatch),
-  authActions: bindActionCreators(actions.auth, dispatch),
+const mapDispatchToProps = (dispatch) => ({
   analyticsActions: bindActionCreators(actions.analytics, dispatch),
-  simpleBuyActions: bindActionCreators(actions.components.simpleBuy, dispatch)
+  authActions: bindActionCreators(actions.auth, dispatch),
+  miscActions: bindActionCreators(actions.core.data.misc, dispatch),
+  routerActions: bindActionCreators(actions.router, dispatch),
+  runGoals: () => dispatch(actions.goals.runGoals()),
+  saveGoal: (name, data) => dispatch(actions.goals.saveGoal(name, data)),
+  securityCenterActions: bindActionCreators(actions.modules.securityCenter, dispatch)
 })
 
 const connector = connect(mapStateToProps, mapDispatchToProps)
 
-export type PropsType = ConnectedProps<typeof connector>
+export type Props = ConnectedProps<typeof connector>
 
 export default connector(VerifyEmailContainer)

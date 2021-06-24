@@ -1,5 +1,6 @@
-import { CoinType, ExtractSuccess } from 'core/types'
 import { curry, lift } from 'ramda'
+
+import { CoinType, ExtractSuccess } from 'blockchain-wallet-v4/src/types'
 import { RootState } from 'data/rootReducer'
 
 export const getPaymentsAccountExchange = curry(
@@ -17,6 +18,9 @@ export const getPaymentsTradingAccountAddress = curry(
     )
   }
 )
+
+export const getUnstoppableDomainResults = (state: RootState) =>
+  state.components.send.unstoppableDomainResults
 
 export const getWithdrawLockCheck = (state: RootState) =>
   state.components.send.withdrawLockCheck

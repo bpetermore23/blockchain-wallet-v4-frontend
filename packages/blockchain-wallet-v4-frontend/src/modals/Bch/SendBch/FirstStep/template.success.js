@@ -1,3 +1,10 @@
+import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import Bowser from 'bowser'
+import PropTypes from 'prop-types'
+import { Field, reduxForm } from 'redux-form'
+import styled from 'styled-components'
+
 import {
   Banner,
   Button,
@@ -6,6 +13,7 @@ import {
   TooltipHost,
   TooltipIcon
 } from 'blockchain-info-components'
+import ComboDisplay from 'components/Display/ComboDisplay'
 import {
   CountdownTimer,
   FiatConverter,
@@ -18,25 +26,19 @@ import {
   TextAreaDebounced,
   TextBox
 } from 'components/Form'
+import QRCodeCapture from 'components/QRCode/Capture'
 import { CustodyToAccountMessage, Row } from 'components/Send'
-import { Field, reduxForm } from 'redux-form'
-import { FormattedMessage } from 'react-intl'
+import MnemonicRequiredForCustodySend from 'components/Send/RecoveryPhrase'
+import UnstoppableDomains from 'components/UnstoppableDomains'
+import { model } from 'data'
+import { required, validBchAddress } from 'services/forms'
+
 import {
   insufficientFunds,
   invalidAmount,
   maximumAmount,
   shouldError
 } from './validation'
-import { model } from 'data'
-import { required, validBchAddress } from 'services/FormHelper'
-import Bowser from 'bowser'
-import ComboDisplay from 'components/Display/ComboDisplay'
-import ExchangePromo from 'components/Send/ExchangePromo'
-import MnemonicRequiredForCustodySend from 'components/Send/RecoveryPhrase'
-import PropTypes from 'prop-types'
-import QRCodeCapture from 'components/QRCode/Capture'
-import React from 'react'
-import styled from 'styled-components'
 
 const WarningBanners = styled(Banner)`
   margin: -6px 0 12px;
@@ -69,8 +71,8 @@ const FirstStep = props => {
     from,
     handleBitPayInvoiceExpiration,
     handleSubmit,
-    isMnemonicVerified,
     invalid,
+    isMnemonicVerified,
     payPro,
     pristine,
     submitting,
@@ -163,14 +165,13 @@ const FirstStep = props => {
                 <Field
                   component={SelectBoxBchAddresses}
                   dataE2e='sendBchAddressInput'
-                  exclude={[from.label]}
-                  excludeImported={isFromCustody}
+                  exclude={from ? [from.label] : []}
                   includeAll={false}
-                  includeExchangeAddress={!isFromCustody}
-                  isCreatable={!isFromCustody}
+                  includeExchangeAddress
+                  isCreatable
                   isValidNewOption={() => false}
                   includeCustodial={!isFromCustody}
-                  forceCustodialFirst={!isFromCustody}
+                  forceCustodialFirst
                   name='to'
                   noOptionsMessage={() => null}
                   openMenuOnClick={!!isFromCustody}
@@ -179,12 +180,10 @@ const FirstStep = props => {
                     isFromCustody ? [required] : [required, validBchAddress]
                   }
                 />
-                {!isFromCustody && (
-                  <QRCodeCapture
-                    scanType='bchAddress'
-                    border={['top', 'bottom', 'right', 'left']}
-                  />
-                )}
+                <QRCodeCapture
+                  scanType='bchAddress'
+                  border={['top', 'bottom', 'right', 'left']}
+                />
               </>
             ) : (
               <Field
@@ -197,12 +196,9 @@ const FirstStep = props => {
           </Row>
         </FormItem>
       </FormGroup>
+      <UnstoppableDomains form={model.components.sendBch.FORM} />
       <FormGroup>
-        {isFromCustody && isMnemonicVerified ? (
-          <CustodyToAccountMessage coin='BCH' account={from} amount={amount} />
-        ) : (
-          <ExchangePromo />
-        )}
+        <CustodyToAccountMessage coin='BCH' account={from} amount={amount} />
       </FormGroup>
       <FormGroup margin={'15px'}>
         <FormItem>
@@ -264,21 +260,19 @@ const FirstStep = props => {
           )}
         </FormItem>
       </FormGroup>
-      {!isFromCustody && (
-        <FormGroup inline margin={isPayPro ? '10px' : '30px'}>
-          <FormItem>
-            <FormLabel>
-              <FormattedMessage
-                id='modals.sendBch.firststep.networkfee'
-                defaultMessage='Network Fee'
-              />
-            </FormLabel>
-            <ComboDisplay size='13px' coin='BCH' weight={500}>
-              {totalFee}
-            </ComboDisplay>
-          </FormItem>
-        </FormGroup>
-      )}
+      <FormGroup inline margin={isPayPro ? '10px' : '30px'}>
+        <FormItem>
+          <FormLabel>
+            <FormattedMessage
+              id='modals.sendBch.firststep.networkfee'
+              defaultMessage='Network Fee'
+            />
+          </FormLabel>
+          <ComboDisplay size='13px' coin='BCH' weight={500}>
+            {totalFee}
+          </ComboDisplay>
+        </FormItem>
+      </FormGroup>
       {isPayPro && invalid && (
         <Text
           size='13px'

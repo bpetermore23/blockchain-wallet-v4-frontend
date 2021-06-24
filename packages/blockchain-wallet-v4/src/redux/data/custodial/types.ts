@@ -1,4 +1,3 @@
-import * as AT from './actionTypes'
 import {
   CoinType,
   FiatType,
@@ -8,6 +7,8 @@ import {
   SBTransactionType,
   WalletCurrencyType
 } from 'core/types'
+
+import * as AT from './actionTypes'
 
 export type FetchCustodialOrdersAndTransactionsReturnType = {
   orders: Array<SBOrderType | SBTransactionType | ProcessedSwapOrderType>
@@ -37,9 +38,9 @@ export type SBCoreActionTypes = SetNextSBTransactionsURL
 // TODO: remove once we have unified custodial transaction endpoints
 export type FiatSBAndSwapTransactionType = {
   amount: {
-    fiatSymbol?: FiatType,
-    inputMoney?: string,
-    symbol: CoinType,
+    fiatSymbol?: FiatType
+    inputMoney?: string
+    symbol: CoinType
     value: string
   }
   amountMinor: string
@@ -60,5 +61,5 @@ export type FiatSBAndSwapTransactionType = {
   id: string
   insertedAt: string
   state: SBTransactionStateType | 'FINISHED'
-  type: 'DEPOSIT' | 'WITHDRAWAL' | 'REFUNDED' | 'SELL'
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'REFUNDED' | 'SELL' | 'CHARGE'
 }

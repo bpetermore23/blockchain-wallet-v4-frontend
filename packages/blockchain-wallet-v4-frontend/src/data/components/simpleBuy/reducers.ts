@@ -1,21 +1,19 @@
+import Remote from 'blockchain-wallet-v4/src/remote/remote'
+
 import * as AT from './actionTypes'
 import { getCoinFromPair, getFiatFromPair } from './model'
 import { SimpleBuyActionTypes, SimpleBuyState } from './types'
-import Remote from 'blockchain-wallet-v4/src/remote/remote'
 
 const INITIAL_STATE: SimpleBuyState = {
   addBank: undefined,
   account: Remote.NotAsked,
   balances: Remote.NotAsked,
-  bankStatus: Remote.NotAsked,
-  bankTransferAccounts: Remote.NotAsked,
   card: Remote.NotAsked,
   cardId: undefined,
   cards: Remote.NotAsked,
   cryptoCurrency: undefined,
   displayBack: false,
   everypay3DS: Remote.NotAsked,
-  fastLink: Remote.NotAsked,
   fiatCurrency: undefined,
   fiatEligible: Remote.NotAsked,
   method: undefined,
@@ -35,10 +33,10 @@ const INITIAL_STATE: SimpleBuyState = {
   sellQuote: Remote.NotAsked,
   step: 'CRYPTO_SELECTION',
   swapAccount: undefined,
-  sddLimits: Remote.NotAsked
+  limits: Remote.NotAsked
 }
 
-export function simpleBuyReducer (
+export function simpleBuyReducer(
   state = INITIAL_STATE,
   action: SimpleBuyActionTypes
 ): SimpleBuyState {
@@ -85,25 +83,6 @@ export function simpleBuyReducer (
         quote: Remote.NotAsked,
         step: 'CRYPTO_SELECTION'
       }
-    case AT.FETCH_BANK_TRANSFER_ACCOUNTS_LOADING:
-      return {
-        ...state,
-        bankTransferAccounts: Remote.Loading
-      }
-    case AT.FETCH_BANK_TRANSFER_ACCOUNTS_SUCCESS:
-      const accounts = action.payload.accounts.filter(
-        a => a.state !== 'PENDING' && a.state !== 'BLOCKED'
-      )
-      return {
-        ...state,
-        bankTransferAccounts: Remote.Success(accounts)
-      }
-    case AT.FETCH_BANK_TRANSFER_ACCOUNTS_ERROR: {
-      return {
-        ...state,
-        bankTransferAccounts: Remote.Failure(action.payload.error)
-      }
-    }
     case AT.FETCH_SB_BALANCES_FAILURE: {
       return {
         ...state,
@@ -152,11 +131,6 @@ export function simpleBuyReducer (
       return {
         ...state,
         cards: Remote.Success(action.payload.cards)
-      }
-    case AT.FETCH_BANK_TRANSFER_UPDATE_LOADING:
-      return {
-        ...state,
-        fastLink: Remote.Loading
       }
     case AT.FETCH_SB_FIAT_ELIGIBLE_FAILURE: {
       return {
@@ -304,21 +278,21 @@ export function simpleBuyReducer (
         sddVerified: Remote.Failure(action.payload.error)
       }
     }
-    case AT.FETCH_SDD_LIMITS_FAILURE: {
+    case AT.FETCH_LIMITS_FAILURE: {
       return {
         ...state,
-        sddLimits: Remote.Failure(action.payload.error)
+        limits: Remote.Failure(action.payload.error)
       }
     }
-    case AT.FETCH_SDD_LIMITS_LOADING:
+    case AT.FETCH_LIMITS_LOADING:
       return {
         ...state,
-        sddLimits: Remote.Loading
+        limits: Remote.Loading
       }
-    case AT.FETCH_SDD_LIMITS_SUCCESS:
+    case AT.FETCH_LIMITS_SUCCESS:
       return {
         ...state,
-        sddLimits: Remote.Success(action.payload.sddLimits)
+        limits: Remote.Success(action.payload.limits)
       }
     case AT.FETCH_SDD_VERIFIED_LOADING:
       return {
@@ -365,10 +339,10 @@ export function simpleBuyReducer (
         sddTransactionFinished: true
       }
     }
-    case AT.SET_FAST_LINK:
+    case AT.SET_FIAT_CURRENCY:
       return {
         ...state,
-        fastLink: Remote.Success(action.payload.fastLink)
+        fiatCurrency: action.payload.fiatCurrency
       }
     case AT.SET_STEP:
       switch (action.payload.step) {
@@ -408,8 +382,8 @@ export function simpleBuyReducer (
           }
         case '3DS_HANDLER':
         case 'CHECKOUT_CONFIRM':
+        case 'OPEN_BANKING_CONNECT':
         case 'ORDER_SUMMARY':
-        case 'CANCEL_ORDER':
           return {
             ...state,
             order: action.payload.order,
@@ -424,23 +398,13 @@ export function simpleBuyReducer (
             displayBack: action.payload.displayBack,
             addBank: action.payload.addBank
           }
-        case 'LINK_BANK':
-          return {
-            ...state,
-            step: action.payload.step
-          }
-        case 'LINK_BANK_STATUS':
-          return {
-            ...state,
-            step: action.payload.step,
-            bankStatus: Remote.Success(action.payload.bankStatus)
-          }
         case 'SELL_ORDER_SUMMARY':
           return {
             ...state,
             step: action.payload.step,
             sellOrder: action.payload.sellOrder
           }
+        case 'LOADING':
         default: {
           return {
             ...state,

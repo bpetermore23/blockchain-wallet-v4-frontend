@@ -1,12 +1,9 @@
-import { call, delay, put, race, select, take } from 'redux-saga/effects'
 import BigNumber from 'bignumber.js'
 import moment from 'moment'
+import { call, delay, put, race, select, take } from 'redux-saga/effects'
 
-import * as A from './actions'
-import * as AT from './actionTypes'
-import * as S from './selectors'
-import { actions, selectors } from 'data'
-import { APIType } from 'core/network/api'
+import { Exchange } from 'blockchain-wallet-v4/src'
+import { APIType } from 'blockchain-wallet-v4/src/network/api'
 import {
   CoinType,
   Erc20CoinsEnum,
@@ -14,32 +11,30 @@ import {
   PaymentValue,
   SwapQuoteType
 } from 'blockchain-wallet-v4/src/types'
-import { convertStandardToBase } from '../exchange/services'
 import { errorHandler } from 'blockchain-wallet-v4/src/utils'
-import { Exchange } from 'blockchain-wallet-v4/src'
-import { getDirection, getPair, getRate, NO_QUOTE } from './utils'
+import { actions, selectors } from 'data'
+import { SWAP_ACCOUNTS_SELECTOR } from 'data/coins/model/swap'
+import { getCoinAccounts } from 'data/coins/selectors'
+import { generateProvisionalPaymentAmount } from 'data/coins/utils'
+
+import profileSagas from '../../modules/profile/sagas'
+import { convertStandardToBase } from '../exchange/services'
+import sendSagas from '../send/sagas'
+import { selectReceiveAddress } from '../utils/sagas'
+import * as A from './actions'
+import * as AT from './actionTypes'
+import { FALLBACK_DELAY } from './model'
+import * as S from './selectors'
 import {
   InitSwapFormValuesType,
   MempoolFeeType,
   SwapAccountType,
-  SwapAmountFormValues
+  SwapAmountFormValues,
+  SwapBaseCounterTypes
 } from './types'
-import { selectReceiveAddress } from '../utils/sagas'
+import { getDirection, getPair, getRate, NO_QUOTE } from './utils'
 
-import { FALLBACK_DELAY } from './model'
-import { INVALID_COIN_TYPE } from 'blockchain-wallet-v4/src/model'
-import profileSagas from '../../../data/modules/profile/sagas'
-import sendSagas from '../send/sagas'
-
-export default ({
-  api,
-  coreSagas,
-  networks
-}: {
-  api: APIType
-  coreSagas
-  networks
-}) => {
+export default ({ api, coreSagas, networks }: { api: APIType; coreSagas; networks }) => {
   const { buildAndPublishPayment, paymentGetOrElse } = sendSagas({
     api,
     coreSagas,
@@ -47,7 +42,7 @@ export default ({
   })
   const { waitForUserData } = profileSagas({ api, coreSagas, networks })
 
-  const cancelOrder = function * ({ payload }: ReturnType<typeof A.cancelOrder>) {
+  const cancelOrder = function* ({ payload }: ReturnType<typeof A.cancelOrder>) {
     try {
       yield put(actions.form.startSubmit('swapOrderDetails'))
       yield call(api.cancelSwapOrder, payload.id)
@@ -60,8 +55,8 @@ export default ({
     }
   }
 
-  const changePair = function * ({ payload }: ReturnType<typeof A.changePair>) {
-    yield put(actions.form.change('initSwap', payload.side, payload.account))
+  const changeBase = function* ({ payload }: ReturnType<typeof A.changeBase>) {
+    yield put(actions.form.change('initSwap', 'BASE', payload.account))
     const initSwapFormValues = selectors.form.getFormValues('initSwap')(
       yield select()
     ) as InitSwapFormValuesType
@@ -69,50 +64,73 @@ export default ({
     if (initSwapFormValues?.BASE && initSwapFormValues?.COUNTER) {
       yield put(
         A.setStep({
-          step: 'ENTER_AMOUNT',
           options: {
-            coin: payload.account.coin,
             account: payload.account.type,
-            side: payload.side
-          }
+            coin: payload.account.coin,
+            side: 'BASE'
+          },
+          step: 'ENTER_AMOUNT'
         })
       )
     } else {
       yield put(
         A.setStep({
-          step: 'INIT_SWAP',
           options: {
-            coin: payload.account.coin,
             account: payload.account.type,
-            side: payload.side
-          }
+            coin: payload.account.coin,
+            side: 'BASE'
+          },
+          step: 'INIT_SWAP'
         })
       )
     }
   }
 
-  const changeTrendingPair = function * ({
-    payload
-  }: ReturnType<typeof A.changeTrendingPair>) {
+  const changeCounter = function* ({ payload }: ReturnType<typeof A.changeCounter>) {
+    yield put(actions.form.change('initSwap', 'COUNTER', payload.account))
+    const initSwapFormValues = selectors.form.getFormValues('initSwap')(
+      yield select()
+    ) as InitSwapFormValuesType
+
+    if (initSwapFormValues?.BASE && initSwapFormValues?.COUNTER) {
+      yield put(
+        A.setStep({
+          options: {
+            account: payload.account.type,
+            coin: payload.account.coin,
+            side: 'COUNTER'
+          },
+          step: 'ENTER_AMOUNT'
+        })
+      )
+    } else {
+      yield put(
+        A.setStep({
+          options: {
+            account: payload.account.type,
+            coin: payload.account.coin,
+            side: 'COUNTER'
+          },
+          step: 'INIT_SWAP'
+        })
+      )
+    }
+  }
+
+  const changeTrendingPair = function* ({ payload }: ReturnType<typeof A.changeTrendingPair>) {
     yield put(actions.form.change('initSwap', 'BASE', payload.baseAccount))
-    yield put(
-      actions.form.change('initSwap', 'COUNTER', payload.counterAccount)
-    )
+    yield put(actions.form.change('initSwap', 'COUNTER', payload.counterAccount))
     yield put(A.setStep({ step: 'ENTER_AMOUNT' }))
   }
 
-  const calculateProvisionalPayment = function * (
+  const calculateProvisionalPayment = function* (
     source: SwapAccountType,
     quote: SwapQuoteType,
     amount,
     fee: MempoolFeeType = 'priority'
-  ): Generator<
-    any,
-    PaymentValue | { coin: CoinType; effectiveBalance: number },
-    PaymentType
-  > {
+  ): Generator<any, PaymentValue | { coin: CoinType; effectiveBalance: number }, PaymentType> {
     try {
-      const coin = source.coin
+      const { coin } = source
       const addressOrIndex = source.address
       const addressType = source.type
       const isSourceErc20 = coin in Erc20CoinsEnum
@@ -120,29 +138,16 @@ export default ({
       let payment: PaymentType = yield coreSagas.payment[paymentType]
         .create({ network: networks[paymentType] })
         .chain()
-        .init({ isErc20: isSourceErc20, coin })
+        .init({ coin, isErc20: isSourceErc20 })
         .fee(fee)
         .from(addressOrIndex, addressType)
         .done()
 
-      switch (payment.coin) {
-        case 'PAX':
-        case 'USDT':
-        case 'WDGLD':
-        case 'ETH':
-        case 'XLM':
-          payment = yield payment.amount(convertStandardToBase(coin, amount))
-          return payment.value()
-        default:
-          payment = yield payment.amount(
-            parseInt(convertStandardToBase(coin, amount))
-          )
-          return (yield payment
-            .chain()
-            .to(quote.sampleDepositAddress, 'ADDRESS')
-            .build()
-            .done()).value()
-      }
+      const paymentAmount = generateProvisionalPaymentAmount(coin, amount)
+      payment = yield payment.amount(paymentAmount)
+      // TODO, add isMemoBased check
+      const sampleAddr = quote.sampleDepositAddress.split(':')[0]
+      return (yield payment.chain().to(sampleAddr, 'ADDRESS').build().done()).value()
     } catch (e) {
       // eslint-disable-next-line
       console.log(e)
@@ -150,7 +155,7 @@ export default ({
     }
   }
 
-  const createOrder = function * () {
+  const createOrder = function* () {
     let onChain = false
     let toChain = false
 
@@ -162,20 +167,14 @@ export default ({
       const swapAmountFormValues = selectors.form.getFormValues('swapAmount')(
         yield select()
       ) as SwapAmountFormValues
-      if (
-        !initSwapFormValues ||
-        !initSwapFormValues.BASE ||
-        !initSwapFormValues.COUNTER
-      ) {
+      if (!initSwapFormValues || !initSwapFormValues.BASE || !initSwapFormValues.COUNTER) {
         throw new Error('NO_INIT_SWAP_FORM_VALUES')
       }
       if (!swapAmountFormValues || !swapAmountFormValues.amount) {
         throw new Error('NO_SWAP_AMOUNT_FORM_VALUES')
       }
 
-      const ccy = selectors.core.settings
-        .getCurrency(yield select())
-        .getOrElse('USD')
+      const ccy = selectors.core.settings.getCurrency(yield select()).getOrElse('USD')
 
       const { BASE, COUNTER } = initSwapFormValues
 
@@ -183,15 +182,10 @@ export default ({
       onChain = direction === 'ON_CHAIN' || direction === 'FROM_USERKEY'
       toChain = direction === 'ON_CHAIN' || direction === 'TO_USERKEY'
 
-      const amount = convertStandardToBase(
-        BASE.coin,
-        swapAmountFormValues.cryptoAmount
-      )
+      const amount = convertStandardToBase(BASE.coin, swapAmountFormValues.cryptoAmount)
 
       const quote = S.getQuote(yield select()).getOrFail('NO_SWAP_QUOTE')
-      const refundAddr = onChain
-        ? yield call(selectReceiveAddress, BASE, networks)
-        : undefined
+      const refundAddr = onChain ? yield call(selectReceiveAddress, BASE, networks) : undefined
       const destinationAddr = toChain
         ? yield call(selectReceiveAddress, COUNTER, networks)
         : undefined
@@ -205,15 +199,10 @@ export default ({
         refundAddr
       )
       const paymentR = S.getPayment(yield select())
-      let payment = paymentGetOrElse(BASE.coin, paymentR)
+      const payment = paymentGetOrElse(BASE.coin, paymentR)
       if (onChain) {
         try {
-          yield call(
-            buildAndPublishPayment,
-            payment.coin,
-            payment,
-            order.kind.depositAddress
-          )
+          yield call(buildAndPublishPayment, payment.coin, payment, order.kind.depositAddress)
           yield call(api.updateSwapOrder, order.id, 'DEPOSIT_SENT')
         } catch (e) {
           yield call(api.updateSwapOrder, order.id, 'CANCEL')
@@ -222,12 +211,13 @@ export default ({
       }
       yield put(actions.form.stopSubmit('previewSwap'))
       yield put(actions.components.refresh.refreshClicked())
+      yield put(actions.form.destroy('swapAmount'))
       yield put(
         A.setStep({
-          step: 'SUCCESSFUL_SWAP',
           options: {
             order
-          }
+          },
+          step: 'SUCCESSFUL_SWAP'
         })
       )
     } catch (e) {
@@ -236,13 +226,11 @@ export default ({
     }
   }
 
-  const fetchCustodialEligibility = function * () {
+  const fetchCustodialEligibility = function* () {
     try {
       yield put(A.fetchCustodialEligibilityLoading())
-      const {
-        eligible
-      }: ReturnType<typeof api.checkCustodialEligiblity> = yield call(
-        api.checkCustodialEligiblity
+      const { eligible }: ReturnType<typeof api.checkCustodialSwapEligibility> = yield call(
+        api.checkCustodialSwapEligibility
       )
       yield put(A.fetchCustodialEligibilitySuccess(eligible))
     } catch (e) {
@@ -251,7 +239,7 @@ export default ({
     }
   }
 
-  const fetchLimits = function * () {
+  const fetchLimits = function* () {
     try {
       yield put(A.fetchLimitsLoading())
       const limits: ReturnType<typeof api.getSwapLimits> = yield call(
@@ -265,12 +253,10 @@ export default ({
     }
   }
 
-  const fetchPairs = function * () {
+  const fetchPairs = function* () {
     try {
       yield put(A.fetchPairsLoading())
-      const pairs: ReturnType<typeof api.getSwapPairs> = yield call(
-        api.getSwapPairs
-      )
+      const pairs: ReturnType<typeof api.getSwapPairs> = yield call(api.getSwapPairs)
       yield put(A.fetchPairsSuccess(pairs))
     } catch (e) {
       const error = errorHandler(e)
@@ -294,18 +280,14 @@ export default ({
   // setting the swap quote loading will set the buy/sell quote loading,
   // which we might not want. This is a case of breakdown between product/design/development.
 
-  const fetchQuote = function * () {
+  const fetchQuote = function* () {
     while (true) {
       try {
         yield put(A.fetchQuoteLoading())
         const initSwapFormValues = selectors.form.getFormValues('initSwap')(
           yield select()
         ) as InitSwapFormValuesType
-        if (
-          !initSwapFormValues ||
-          !initSwapFormValues.BASE ||
-          !initSwapFormValues.COUNTER
-        ) {
+        if (!initSwapFormValues || !initSwapFormValues.BASE || !initSwapFormValues.COUNTER) {
           return yield put(A.setStep({ step: 'INIT_SWAP' }))
         }
 
@@ -331,12 +313,11 @@ export default ({
         yield put(A.fetchQuoteFailure(error))
         yield delay(FALLBACK_DELAY)
         yield put(A.startPollQuote())
-      } finally {
       }
     }
   }
 
-  const fetchTrades = function * () {
+  const fetchTrades = function* () {
     try {
       yield call(waitForUserData)
       yield put(A.fetchTradesLoading())
@@ -348,7 +329,7 @@ export default ({
     }
   }
 
-  const formChanged = function * (action) {
+  const formChanged = function* (action) {
     if (action.meta.form !== 'swapAmount') return
     if (action.meta.field !== 'amount') return
     const initSwapFormValues = selectors.form.getFormValues('initSwap')(
@@ -359,9 +340,7 @@ export default ({
     const { BASE } = initSwapFormValues
     const paymentR = S.getPayment(yield select())
     const fix = S.getFix(yield select())
-    const userCurrency = selectors.core.settings
-      .getCurrency(yield select())
-      .getOrElse('USD')
+    const userCurrency = selectors.core.settings.getCurrency(yield select()).getOrElse('USD')
     const rates = selectors.core.data.misc
       .getRatesSelector(BASE.coin, yield select())
       .getOrFail('Failed to get rates')
@@ -369,17 +348,10 @@ export default ({
     const amountFieldValue =
       fix === 'CRYPTO'
         ? action.payload
-        : Exchange.convertFiatToCoin(
-            action.payload,
-            BASE.coin,
-            userCurrency,
-            rates
-          )
-    yield put(
-      actions.form.change('swapAmount', 'cryptoAmount', amountFieldValue)
-    )
+        : Exchange.convertFiatToCoin(action.payload, BASE.coin, userCurrency, rates)
+    yield put(actions.form.change('swapAmount', 'cryptoAmount', amountFieldValue))
 
-    if (BASE.type === 'CUSTODIAL') return
+    if (BASE.type === SwapBaseCounterTypes.CUSTODIAL) return
 
     const swapAmountValues = selectors.form.getFormValues('swapAmount')(
       yield select()
@@ -387,30 +359,20 @@ export default ({
     // @ts-ignore
     let payment = paymentGetOrElse(BASE.coin, paymentR)
 
-    const value = Number(swapAmountValues?.cryptoAmount)
-
-    switch (payment.coin) {
-      case 'BCH':
-      case 'BTC':
-        payment = yield payment.amount(
-          parseInt(convertStandardToBase(BASE.coin, value))
-        )
-        break
-      case 'ETH':
-      case 'PAX':
-      case 'USDT':
-      case 'WDGLD':
-      case 'XLM':
-        payment = yield payment.amount(convertStandardToBase(BASE.coin, value))
-        break
-      default:
-        throw new Error(INVALID_COIN_TYPE)
+    try {
+      const paymentAmount = generateProvisionalPaymentAmount(
+        BASE.coin,
+        Number(swapAmountValues?.cryptoAmount)
+      )
+      payment = yield payment.amount(paymentAmount)
+      payment = yield payment.build()
+      yield put(A.updatePaymentSuccess(payment.value()))
+    } catch (error) {
+      yield put(A.updatePaymentFailure(error))
     }
-
-    yield put(A.updatePaymentSuccess(payment.value()))
   }
 
-  const initAmountForm = function * () {
+  const initAmountForm = function* () {
     let payment: PaymentValue
     try {
       yield put(A.startPollQuote())
@@ -424,13 +386,13 @@ export default ({
       }
 
       yield race({
-        success: take(AT.FETCH_QUOTE_SUCCESS),
-        failure: take(AT.FETCH_QUOTE_FAILURE)
+        failure: take(AT.FETCH_QUOTE_FAILURE),
+        success: take(AT.FETCH_QUOTE_SUCCESS)
       })
       const quote = S.getQuote(yield select()).getOrFail(NO_QUOTE)
 
       const { BASE } = initSwapFormValues
-      if (BASE.type === 'ACCOUNT') {
+      if (BASE.type === SwapBaseCounterTypes.ACCOUNT) {
         payment = yield call(calculateProvisionalPayment, BASE, quote.quote, 0)
         yield put(A.updatePaymentSuccess(payment))
       } else {
@@ -442,38 +404,34 @@ export default ({
     }
   }
 
-  const refreshAccounts = function * () {
+  const refreshAccounts = function* () {
     const initSwapFormValues = selectors.form.getFormValues('initSwap')(
       yield select()
     ) as InitSwapFormValuesType
 
-    if (
-      !initSwapFormValues ||
-      !initSwapFormValues.BASE ||
-      !initSwapFormValues.COUNTER
-    ) {
+    if (!initSwapFormValues || !initSwapFormValues.BASE || !initSwapFormValues.COUNTER) {
       return
     }
 
-    const accounts = S.getActiveAccounts(yield select())
+    const accounts = getCoinAccounts(yield select(), SWAP_ACCOUNTS_SELECTOR)
     const baseAccount = accounts[initSwapFormValues.BASE.coin].find(
-      val => val.label === initSwapFormValues.BASE?.label
+      (val) => val.label === initSwapFormValues.BASE?.label
     )
     const counterAccount = accounts[initSwapFormValues.COUNTER.coin].find(
-      val => val.label === initSwapFormValues.COUNTER?.label
+      (val) => val.label === initSwapFormValues.COUNTER?.label
     )
 
     yield put(actions.form.change('initSwap', 'BASE', baseAccount))
     yield put(actions.form.change('initSwap', 'COUNTER', counterAccount))
   }
 
-  const showModal = function * ({ payload }: ReturnType<typeof A.showModal>) {
-    const { origin, baseCurrency, counterCurrency } = payload
+  const showModal = function* ({ payload }: ReturnType<typeof A.showModal>) {
+    const { baseCurrency, counterCurrency, origin } = payload
     yield put(
       actions.modals.showModal('SWAP_MODAL', {
-        origin,
         baseCurrency,
-        counterCurrency
+        counterCurrency,
+        origin
       })
     )
 
@@ -482,8 +440,8 @@ export default ({
     if (latestPendingOrder) {
       yield put(
         A.setStep({
-          step: 'ORDER_DETAILS',
-          options: { order: latestPendingOrder }
+          options: { order: latestPendingOrder },
+          step: 'ORDER_DETAILS'
         })
       )
     } else {
@@ -495,24 +453,18 @@ export default ({
     }
   }
 
-  const switchFix = function * ({ payload }: ReturnType<typeof A.switchFix>) {
+  const switchFix = function* ({ payload }: ReturnType<typeof A.switchFix>) {
     yield put(A.setCheckoutFix(payload.fix))
-    const newAmount = new BigNumber(payload.amount).isGreaterThan(0)
-      ? payload.amount
-      : undefined
+    const newAmount = new BigNumber(payload.amount).isGreaterThan(0) ? payload.amount : undefined
     yield put(actions.form.change('swapAmount', 'amount', newAmount))
     yield put(actions.form.focus('swapAmount', 'amount'))
   }
 
-  const toggleBaseAndCounter = function * () {
+  const toggleBaseAndCounter = function* () {
     const initSwapFormValues = selectors.form.getFormValues('initSwap')(
       yield select()
     ) as InitSwapFormValuesType
-    if (
-      !initSwapFormValues ||
-      !initSwapFormValues.BASE ||
-      !initSwapFormValues.COUNTER
-    ) {
+    if (!initSwapFormValues || !initSwapFormValues.BASE || !initSwapFormValues.COUNTER) {
       return yield put(A.setStep({ step: 'INIT_SWAP' }))
     }
 
@@ -526,10 +478,27 @@ export default ({
     yield put(A.initAmountForm())
   }
 
+  const handleSwapMaxAmountClick = function* ({
+    payload
+  }: ReturnType<typeof A.handleSwapMaxAmountClick>) {
+    const { amount } = payload
+
+    yield put(actions.form.change('swapAmount', 'amount', amount))
+  }
+
+  const handleSwapMinAmountClick = function* ({
+    payload
+  }: ReturnType<typeof A.handleSwapMinAmountClick>) {
+    const { amount } = payload
+
+    yield put(actions.form.change('swapAmount', 'amount', amount))
+  }
+
   return {
-    cancelOrder,
     calculateProvisionalPayment,
-    changePair,
+    cancelOrder,
+    changeBase,
+    changeCounter,
     changeTrendingPair,
     createOrder,
     fetchCustodialEligibility,
@@ -538,6 +507,8 @@ export default ({
     fetchQuote,
     fetchTrades,
     formChanged,
+    handleSwapMaxAmountClick,
+    handleSwapMinAmountClick,
     initAmountForm,
     refreshAccounts,
     showModal,

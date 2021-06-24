@@ -1,10 +1,11 @@
-import * as AT from './actionTypes'
 import {
   AccountTypes,
   CoinType,
   FiatType,
   InterestAccountBalanceType,
   InterestAccountType,
+  InterestAfterTransactionType,
+  InterestEDDStatus,
   InterestEligibleType,
   InterestInstrumentsType,
   InterestLimitsType,
@@ -12,8 +13,11 @@ import {
   InterestTransactionType,
   PaymentValue,
   RemoteDataType,
-  WithdrawalMinimumType
-} from 'core/types'
+  WithdrawalMinimumType,
+  WithdrawLimits
+} from 'blockchain-wallet-v4/src/types'
+
+import * as AT from './actionTypes'
 
 //
 // Types
@@ -53,19 +57,27 @@ export type InterestStepMetadata = {
 
 export type InterestStep = keyof typeof InterestSteps
 
+export type InterestTransactionsReportType = Array<Array<string>>
+
+export type InterestHistoryCoinFormType = { coin: CoinType | 'ALL' }
+
 //
 // State
 //
 export interface InterestState {
   account: RemoteDataType<string, InterestAccountType>
   accountBalance: RemoteDataType<string, InterestAccountBalanceType>
+  afterTransaction: RemoteDataType<string, InterestAfterTransactionType>
   coin: CoinType
   depositLimits: InterestMinMaxType
   instruments: RemoteDataType<string, InterestInstrumentsType>
+  interestEDDStatus: RemoteDataType<string, InterestEDDStatus>
+  interestEDDWithdrawLimits: RemoteDataType<string, WithdrawLimits>
   interestEligible: RemoteDataType<string, InterestEligibleType>
   interestLimits: RemoteDataType<string, InterestLimitsType>
   interestRate: RemoteDataType<string, InterestRateType['rates']>
   isCoinDisplayed: boolean
+  isFromBuySell: boolean
   // make this optional here. places where ts doesnt like it, check, custodial
   payment?: RemoteDataType<string, PaymentValue | undefined>
   step: {
@@ -74,6 +86,7 @@ export interface InterestState {
   }
   transactions: Array<InterestTransactionType>
   transactionsNextPage: string | null
+  transactionsReport: RemoteDataType<string, Array<InterestTransactionType>>
   withdrawalMinimums: RemoteDataType<string, WithdrawalMinimumType>
 }
 
@@ -172,6 +185,22 @@ interface FetchInterestRateSuccess {
 }
 
 // TRANSACTIONS
+interface ClearInterestTransactionsReport {
+  type: typeof AT.CLEAR_INTEREST_TRANSACTIONS_REPORT
+}
+interface FetchInterestTransactionsReportFailure {
+  payload: { error: string }
+  type: typeof AT.FETCH_INTEREST_TRANSACTIONS_REPORT_FAILURE
+}
+interface FetchInterestTransactionsReportLoading {
+  type: typeof AT.FETCH_INTEREST_TRANSACTIONS_REPORT_LOADING
+}
+interface FetchInterestTransactionsReportSuccess {
+  payload: {
+    transactions: Array<InterestTransactionType>
+  }
+  type: typeof AT.FETCH_INTEREST_TRANSACTIONS_REPORT_SUCCESS
+}
 interface FetchInterestTransactionsFailure {
   payload: { error: string }
   type: typeof AT.FETCH_INTEREST_TRANSACTIONS_FAILURE
@@ -266,7 +295,52 @@ interface ShowInterestModal {
   type: typeof AT.SHOW_INTEREST_MODAL
 }
 
+// INTEREST CTA AFTER TRANSACTION
+interface FetchInterestAfterTransactionFailure {
+  payload: { error: string }
+  type: typeof AT.FETCH_SHOW_INTEREST_CARD_AFTER_TRANSACTION_FAILURE
+}
+interface FetchInterestAfterTransactionLoading {
+  type: typeof AT.FETCH_SHOW_INTEREST_CARD_AFTER_TRANSACTION_LOADING
+}
+interface FetchInterestAfterTransactionSuccess {
+  payload: { afterTransaction: InterestAfterTransactionType }
+  type: typeof AT.FETCH_SHOW_INTEREST_CARD_AFTER_TRANSACTION_SUCCESS
+}
+interface ResetAfterTransaction {
+  type: typeof AT.RESET_SHOW_INTEREST_CARD_AFTER_TRANSACTION
+}
+
+// EDD
+interface FetchInterestEDDStatusFailure {
+  payload: { error: string }
+  type: typeof AT.FETCH_EDD_STATUS_FAILURE
+}
+interface FetchInterestEDDStatusLoading {
+  type: typeof AT.FETCH_EDD_STATUS_LOADING
+}
+interface FetchInterestEDDStatusSuccess {
+  payload: { eddStatus: InterestEDDStatus }
+  type: typeof AT.FETCH_EDD_STATUS_SUCCESS
+}
+interface FetchEddWithdrawLimitsFailure {
+  payload: { error: string }
+  type: typeof AT.FETCH_EDD_WITHDRAW_LIMITS_FAILURE
+}
+interface FetchEddWithdrawLimitsLoading {
+  type: typeof AT.FETCH_EDD_WITHDRAW_LIMITS_LOADING
+}
+interface FetchEddWithdrawLimitsSuccess {
+  payload: { interestEDDWithdrawLimits: WithdrawLimits }
+  type: typeof AT.FETCH_EDD_WITHDRAW_LIMITS_SUCCESS
+}
+
 export type InterestActionTypes =
+  | ClearInterestTransactionsReport
+  | FetchInterestAfterTransactionFailure
+  | FetchInterestAfterTransactionLoading
+  | FetchInterestAfterTransactionSuccess
+  | ResetAfterTransaction
   | FetchInterestBalanceFailure
   | FetchInterestBalanceLoading
   | FetchInterestBalanceSuccess
@@ -282,12 +356,21 @@ export type InterestActionTypes =
   | fetchInterestAccountFailure
   | fetchInterestAccountLoading
   | fetchInterestAccountSuccess
+  | FetchInterestTransactionsReportFailure
+  | FetchInterestTransactionsReportLoading
+  | FetchInterestTransactionsReportSuccess
   | FetchInterestRateFailure
   | FetchInterestRateLoading
   | FetchInterestRateSuccess
   | FetchInterestTransactionsFailure
   | FetchInterestTransactionsLoading
   | FetchInterestTransactionsSuccess
+  | FetchInterestEDDStatusFailure
+  | FetchInterestEDDStatusLoading
+  | FetchInterestEDDStatusSuccess
+  | FetchEddWithdrawLimitsFailure
+  | FetchEddWithdrawLimitsLoading
+  | FetchEddWithdrawLimitsSuccess
   | InitializeDepositModalAction
   | InitializeDepositFormAction
   | InitializeWithdrawalFormAction

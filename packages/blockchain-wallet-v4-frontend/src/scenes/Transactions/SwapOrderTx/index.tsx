@@ -1,18 +1,18 @@
-import { bindActionCreators, Dispatch } from 'redux'
-import { connect, ConnectedProps } from 'react-redux'
-import { FormattedMessage } from 'react-intl'
-import { replace } from 'ramda'
 import React, { PureComponent } from 'react'
+import { FormattedMessage } from 'react-intl'
+import { connect, ConnectedProps } from 'react-redux'
+import { replace } from 'ramda'
+import { bindActionCreators, Dispatch } from 'redux'
 import styled from 'styled-components'
 
-import { actions, selectors } from 'data'
 import { Button, Icon, Link, Text } from 'blockchain-info-components'
-import { coinToString, fiatToString } from 'core/exchange/currency'
+import { coinToString, fiatToString } from 'blockchain-wallet-v4/src/exchange/currency'
 import {
   CoinType,
   ProcessedSwapOrderType,
   SupportedWalletCurrenciesType
-} from 'core/types'
+} from 'blockchain-wallet-v4/src/types'
+import { actions, selectors } from 'data'
 import { convertBaseToStandard } from 'data/components/exchange/services'
 import { getInput, getOutput } from 'data/components/swap/model'
 import { RootState } from 'data/rootReducer'
@@ -47,10 +47,13 @@ const ViewTxWrapper = styled.div`
   }
 `
 class SwapOrderTx extends PureComponent<Props, State> {
-  state: State = { isToggled: false }
+  constructor(props: Props) {
+    super(props)
+    this.state = { isToggled: false }
+  }
 
   handleToggle = () => {
-    this.setState({ isToggled: !this.state.isToggled })
+    this.setState((prevState) => ({ isToggled: !prevState.isToggled }))
   }
 
   showModal = (order: ProcessedSwapOrderType) => {
@@ -58,48 +61,37 @@ class SwapOrderTx extends PureComponent<Props, State> {
       origin: 'TransactionList'
     })
     this.props.swapActions.setStep({
-      step: 'ORDER_DETAILS',
       options: {
         order
-      }
+      },
+      step: 'ORDER_DETAILS'
     })
   }
 
-  render () {
-    const { order, coin, supportedCoins } = this.props
+  render() {
+    const { coin, order, supportedCoins } = this.props
     const base = getInput(order)
     const counter = getOutput(order)
     const { outputMoney } = this.props.order.priceFunnel
     return (
-      <TxRowContainer
-        className={this.state.isToggled ? 'active' : ''}
-        data-e2e='transactionRow'
-      >
+      <TxRowContainer className={this.state.isToggled ? 'active' : ''} data-e2e='transactionRow'>
         <TxRow onClick={this.handleToggle}>
           <Row width='30%' data-e2e='orderStatusColumn'>
             <IconTx {...this.props} />
             <StatusAndType>
-              <Text
-                size='16px'
-                color='grey800'
-                weight={600}
-                data-e2e='txTypeText'
-              >
+              <Text size='16px' color='grey800' weight={600} data-e2e='txTypeText'>
                 Swap {replace('PAX', 'USD-D', this.props.order.pair)}
               </Text>
               <Timestamp {...this.props} />
             </StatusAndType>
           </Row>
           <Col width='50%' data-e2e='orderToAndFrom'>
-            <Addresses
-              from={<>{getOrigin(this.props)}</>}
-              to={<>{getDestination(this.props)}</>}
-            />
+            <Addresses from={<>{getOrigin(this.props)}</>} to={<>{getDestination(this.props)}</>} />
           </Col>
           {order.state === 'PENDING_DEPOSIT' ? (
             <LastCol
               width='20%'
-              style={{ textAlign: 'right', alignItems: 'flex-end' }}
+              style={{ alignItems: 'flex-end', textAlign: 'right' }}
               data-e2e='orderAmountColumn'
             >
               <Button
@@ -108,7 +100,7 @@ class SwapOrderTx extends PureComponent<Props, State> {
                 height='35px'
                 nature='light'
                 // @ts-ignore
-                onClick={e => {
+                onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
                   return this.showModal(order)
@@ -173,12 +165,7 @@ class SwapOrderTx extends PureComponent<Props, State> {
                     target='_blank'
                     data-e2e='swapOutgoingTransactionListItemExplorerLink'
                   >
-                    <Icon
-                      name='open-in-new-tab'
-                      color='marketing-primary'
-                      cursor
-                      size='14px'
-                    />
+                    <Icon name='open-in-new-tab' color='marketing-primary' cursor size='14px' />
                   </Link>
                 </ViewTxWrapper>
               )}
@@ -195,12 +182,7 @@ class SwapOrderTx extends PureComponent<Props, State> {
                     target='_blank'
                     data-e2e='swapIncomingTransactionListItemExplorerLink'
                   >
-                    <Icon
-                      name='open-in-new-tab'
-                      color='marketing-primary'
-                      cursor
-                      size='14px'
-                    />
+                    <Icon name='open-in-new-tab' color='marketing-primary' cursor size='14px' />
                   </Link>
                 </ViewTxWrapper>
               )}
@@ -208,27 +190,18 @@ class SwapOrderTx extends PureComponent<Props, State> {
             <DetailsColumn />
             <DetailsColumn>
               <RowHeader>
-                <FormattedMessage
-                  defaultMessage='Status'
-                  id='components.txlistitem.status'
-                />
+                <FormattedMessage defaultMessage='Status' id='components.txlistitem.status' />
               </RowHeader>
               <RowValue>
                 <Status {...this.props} />
               </RowValue>
               <RowHeader>
-                <FormattedMessage
-                  id='copy.amount_sent'
-                  defaultMessage='Amount Sent'
-                />
+                <FormattedMessage id='copy.amount_sent' defaultMessage='Amount Sent' />
               </RowHeader>
               <RowValue data-e2e='swapPurchasing'>
                 {fiatToString({
                   unit: this.props.order.fiatCurrency,
-                  value: convertBaseToStandard(
-                    'FIAT',
-                    this.props.order.fiatValue
-                  )
+                  value: convertBaseToStandard('FIAT', this.props.order.fiatValue)
                 })}
               </RowValue>
             </DetailsColumn>

@@ -1,25 +1,26 @@
-import { bindActionCreators, Dispatch } from 'redux'
-import { connect, ConnectedProps } from 'react-redux'
 import React, { PureComponent } from 'react'
+import { connect, ConnectedProps } from 'react-redux'
+import { equals } from 'ramda'
+import { bindActionCreators, Dispatch } from 'redux'
 
-import { actions, selectors } from 'data'
+import { Remote } from 'blockchain-wallet-v4/src'
 import {
   ExtractSuccess,
   RemoteDataType,
   SBOrderType,
   SupportedWalletCurrenciesType
-} from 'core/types'
-import { Remote } from 'core'
-import { RootState } from 'data/rootReducer'
+} from 'blockchain-wallet-v4/src/types'
 import DataError from 'components/DataError'
+import { actions, selectors } from 'data'
+import { RootState } from 'data/rootReducer'
 
-import { getData } from './selectors'
 import Loading from '../template.loading'
-import Success from './template.success'
+import { getData } from './selectors'
 import SuccessSdd from './template.sdd.success'
+import Success from './template.success'
 
 class OrderSummary extends PureComponent<Props> {
-  componentDidMount () {
+  componentDidMount() {
     if (!Remote.Success.is(this.props.data)) {
       this.props.simpleBuyActions.fetchSBCards()
       this.props.sendActions.getLockRule()
@@ -36,16 +37,20 @@ class OrderSummary extends PureComponent<Props> {
         order: this.props.order
       })
     }
+    this.props.interestActions.fetchShowInterestCardAfterTransaction()
   }
 
   handleRefresh = () => {
     this.props.simpleBuyActions.fetchSBCards()
   }
 
-  render () {
+  render() {
+    const { state } = this.props.order
     return this.props.data.cata({
       Success: val => {
-        return val.userData?.tiers?.current !== 2 ? (
+        return state === 'FAILED' || state === 'CANCELED' ? (
+          <DataError onClick={this.handleRefresh} />
+        ) : val.userData?.tiers?.current !== 2 ? (
           <SuccessSdd {...val} {...this.props} />
         ) : (
           <Success {...val} {...this.props} />
@@ -62,12 +67,14 @@ const mapStateToProps = (state: RootState): LinkStatePropsType => ({
   data: getData(state),
   supportedCoins: selectors.core.walletOptions
     .getSupportedCoins(state)
-    .getOrFail('Supported coins missing')
+    .getOrFail('Supported coins missing'),
+  isGoldVerified: equals(selectors.modules.profile.getCurrentTier(state), 2)
 })
 
 const mapDispatchToProps = (dispatch: Dispatch) => ({
   simpleBuyActions: bindActionCreators(actions.components.simpleBuy, dispatch),
-  sendActions: bindActionCreators(actions.components.send, dispatch)
+  sendActions: bindActionCreators(actions.components.send, dispatch),
+  interestActions: bindActionCreators(actions.components.interest, dispatch)
 })
 const connector = connect(mapStateToProps, mapDispatchToProps)
 
@@ -80,6 +87,7 @@ export type SuccessStateType = ExtractSuccess<ReturnType<typeof getData>>
 
 type LinkStatePropsType = {
   data: RemoteDataType<string, SuccessStateType>
+  isGoldVerified: boolean
   supportedCoins: SupportedWalletCurrenciesType
 }
 export type Props = OwnProps & ConnectedProps<typeof connector>

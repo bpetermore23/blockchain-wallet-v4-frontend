@@ -1,10 +1,11 @@
+import React from 'react'
 import { FormattedMessage } from 'react-intl'
 import moment from 'moment'
-import React from 'react'
+import { transparentize } from 'polished'
 import styled, { DefaultTheme } from 'styled-components'
 
-import { CoinType } from 'core/types'
 import { Icon, Text, TextGroup } from 'blockchain-info-components'
+import { CoinType } from 'blockchain-wallet-v4/src/types'
 import CoinDisplay from 'components/Display/CoinDisplay'
 import FiatDisplay from 'components/Display/FiatDisplay'
 
@@ -15,7 +16,7 @@ const AddressesWrapper = styled.div`
   align-items: flex-start;
 `
 
-export const Addresses = ({ to, from }) => {
+export const Addresses = ({ from, to }) => {
   return (
     <AddressesWrapper>
       <TextGroup inline style={{ marginBottom: '5px' }}>
@@ -32,8 +33,9 @@ export const Addresses = ({ to, from }) => {
         </Text>
       </TextGroup>
       <TextGroup inline>
-        <Text size='14px' color={'grey600'} weight={500}>
-          <FormattedMessage id='copy.from:' defaultMessage='From: ' />
+        <Text size='14px' color='grey600' weight={500}>
+          <FormattedMessage id='copy.from:' defaultMessage='From' />
+          :
         </Text>
         <Text
           size='14px'
@@ -91,6 +93,15 @@ export const DetailsColumn = styled.div`
     align-items: flex-end;
   }
 `
+export const IconWrapper = styled.div<{ color: keyof DefaultTheme }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 32px;
+  border-radius: 16px;
+  background: ${props => transparentize(0.85, props.theme[props.color])};
+`
 
 export const IconTx = ({
   coin,
@@ -108,14 +119,12 @@ export const IconTx = ({
     | 'received'
     | 'transferred'
 }) => {
-  const color = coin ? (coin.toLowerCase() as keyof DefaultTheme) : 'grey600'
+  const color = coin ? (coin as keyof DefaultTheme) : 'grey600'
 
   const getIcon = () => {
     switch (type) {
       case 'PENDING':
-        return (
-          <Icon size='20px' weight={600} name={'timer'} color={'grey700'} />
-        )
+        return <Icon size='20px' weight={600} name='timer' color='grey700' />
       case 'BUY':
       case 'SELL':
         return (
@@ -132,7 +141,7 @@ export const IconTx = ({
           <Icon
             size='20px'
             weight={600}
-            color='fiat'
+            color='USD'
             name={type === 'DEPOSIT' ? 'arrow-down' : 'arrow-up'}
           />
         )
@@ -172,25 +181,16 @@ export const IconTx = ({
             color={color}
           />
         )
+      default:
+        return <></>
     }
   }
 
-  const bgColor =
-    type === 'PENDING' || !coin
-      ? 'grey000'
-      : ((color + '-light') as keyof DefaultTheme)
+  const bgColor = type === 'PENDING' || !coin ? 'grey000' : color
 
   return <IconWrapper color={bgColor}>{getIcon()}</IconWrapper>
 }
-export const IconWrapper = styled.div<{ color: keyof DefaultTheme }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-  width: 32px;
-  border-radius: 16px;
-  background: ${props => props.theme[props.color]};
-`
+
 export const Row = styled(Col)`
   display: flex;
   align-items: center;
@@ -215,6 +215,11 @@ export const StyledCoinDisplay = styled(CoinDisplay)`
 `
 export const StyledFiatDisplay = styled(FiatDisplay)`
   color: ${props => props.theme.grey600};
+  margin-top: 4px;
+  justify-content: flex-end;
+`
+export const StyledBuyFiatDisplay = styled.div`
+  display: flex;
   margin-top: 4px;
   justify-content: flex-end;
 `

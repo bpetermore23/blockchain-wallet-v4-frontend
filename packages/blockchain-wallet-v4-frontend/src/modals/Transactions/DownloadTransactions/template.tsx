@@ -1,8 +1,7 @@
-import { CSVLink } from 'react-csv'
-import { Field, InjectedFormProps, reduxForm } from 'redux-form'
-import { FormattedMessage } from 'react-intl'
-import { OwnProps, StateProps } from '.'
 import React from 'react'
+import { CSVLink } from 'react-csv'
+import { FormattedMessage } from 'react-intl'
+import { Field, InjectedFormProps, reduxForm } from 'redux-form'
 import styled from 'styled-components'
 
 import {
@@ -21,7 +20,9 @@ import {
   SelectBoxEthAddresses,
   SelectBoxXlmAddresses
 } from 'components/Form'
-import { required } from 'services/FormHelper'
+import { required } from 'services/forms'
+
+import { OwnProps, StateProps } from '.'
 
 const Container = styled.div`
   display: flex;
@@ -215,7 +216,15 @@ const DownloadTransactions: React.FunctionComponent<InjectedFormProps<
                   </Button>
                 </DownloadButton>
               ) : (
-                <HeartbeatLoader />
+                <Button
+                  data-e2e='loadingTransactionButton'
+                  disabled
+                  fullwidth
+                  height='48px'
+                  nature='primary'
+                >
+                  <HeartbeatLoader height='20px' width='20px' color='white' />
+                </Button>
               )
             ) : (
               <Button

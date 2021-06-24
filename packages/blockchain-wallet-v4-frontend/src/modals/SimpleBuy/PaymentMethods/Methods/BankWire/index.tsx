@@ -1,27 +1,23 @@
-import { FormattedMessage } from 'react-intl'
 import React, { ReactElement } from 'react'
+import { FormattedMessage } from 'react-intl'
 import styled from 'styled-components'
 
+import { Icon } from 'blockchain-info-components'
+import { SBPaymentMethodType } from 'blockchain-wallet-v4/src/types'
 import {
   Content,
+  Description,
   DisplayContainer,
   DisplayIcon,
+  DisplaySubTitle,
   DisplayTitle
 } from 'components/SimpleBuy'
-import { Icon } from 'blockchain-info-components'
-import { SBPaymentMethodType } from 'core/types'
-import { Title } from 'components/Flyout'
 
 const DisplayTitleBank = styled(DisplayTitle)`
   margin-bottom: 2px;
 `
 const DisplayIconBank = styled(DisplayIcon)`
   min-height: 75px;
-`
-const SubTitle = styled(Title)`
-  color: ${props => props.theme.grey600};
-  margin-top: 5px;
-  line-height: 21px;
 `
 
 type Props = {
@@ -31,7 +27,7 @@ type Props = {
   value: SBPaymentMethodType
 }
 
-const BankWire: React.FC<Props> = ({ value, onClick, icon, text }) => (
+const BankWire: React.FC<Props> = ({ icon, onClick, text, value }) => (
   <DisplayContainer
     data-e2e={`sb${value.type.toLowerCase()}BankWire`}
     role='button'
@@ -40,12 +36,19 @@ const BankWire: React.FC<Props> = ({ value, onClick, icon, text }) => (
     <DisplayIconBank>{icon}</DisplayIconBank>
     <Content>
       <DisplayTitleBank>{text}</DisplayTitleBank>
-      <SubTitle>
+      <DisplaySubTitle>
         <FormattedMessage
-          id='modals.simplebuy.bankwire.description'
-          defaultMessage='Send funds directly from your bank account to your Blockchain.com wallet.'
+          id='copy.number_of_business_days'
+          defaultMessage='{first} to {second} Business Days'
+          values={{ first: '3', second: '5' }}
         />
-      </SubTitle>
+      </DisplaySubTitle>
+      <Description>
+        <FormattedMessage
+          id='modals.simplebuy.bankwire.description_v2'
+          defaultMessage='Send funds directly from your bank to your Blockchain.com Wallet. Once we receive the wire transfer, we’ll complete your purchase.'
+        />
+      </Description>
     </Content>
     <Icon name='chevron-right' size='24px' color='grey400' />
   </DisplayContainer>

@@ -1,6 +1,3 @@
-import * as Coin from '../../../coinSelection/coin'
-import * as S from '../../selectors'
-import { Address, HDAccount, Wallet } from '../../../types'
 import {
   always,
   assoc,
@@ -10,9 +7,15 @@ import {
   drop,
   equals,
   or,
+  prop,
+  propEq,
   set
 } from 'ramda'
+
+import * as Coin from '../../../coinSelection/coin'
+import { Address, HDAccount, Wallet } from '../../../types'
 import { getWifAddress, isValidBtcAddress } from '../../../utils/btc'
+import * as S from '../../selectors'
 
 // /////////////////////////////////////////////////////////////////////////////
 // Validations
@@ -36,7 +39,7 @@ export const ADDRESS_TYPES = {
   CUSTODIAL: 'CUSTODIAL',
   EXTERNAL: 'EXTERNAL',
   INTEREST: 'INTEREST',
-  LEGACY: 'LEGACY',
+  LEGACY: 'LEGACY', // Imported Addresses
   LOCKBOX: 'LOCKBOX',
   SCRIPT: 'SCRIPT',
   WATCH_ONLY: 'WATCH_ONLY'
@@ -73,23 +76,55 @@ export const fromExternal = (addrComp, addrUncomp, wifComp, wifUncomp) => ({
 })
 
 // fromAccount :: Network -> ReduxState -> Object
-
-export const fromAccount = (network, state, index, coin) => {
+export const fromAccount = (network, state, index) => {
   const wallet = S.wallet.getWallet(state)
   let account = Wallet.getAccount(index, wallet).get()
+  if (account.derivations) {
+    let defaultDerivationXpub = HDAccount.selectXpub(account)
+    let allXpubsGrouped = HDAccount.selectAllXpubsGrouped(account).toJS()
+    let legacy = prop('xpub', allXpubsGrouped.find(propEq('type', 'legacy')))
+    let bech32 = prop('xpub', allXpubsGrouped.find(propEq('type', 'bech32')))
 
-  let changeIndex = equals(coin, 'BTC')
-    ? S.data.btc.getChangeIndex(account.xpub, state)
-    : S.data.bch.getChangeIndex(account.xpub, state)
-  let changeAddress = changeIndex
-    .map(index => HDAccount.getChangeAddress(account, index, network))
-    .getOrFail('missing_change_address')
+    let receiveIndex = S.data.btc.getReceiveIndex(defaultDerivationXpub, state)
+    let changeIndex = S.data.btc.getChangeIndex(defaultDerivationXpub, state)
+    let changeAddress = changeIndex
+      .map(index => HDAccount.getChangeAddress(account, index, network))
+      .getOrFail('missing_change_address')
+    // When moving from one chain to another i.e legacy to segwit
+    // we must send to the receive chain so that backend services
+    // will search for funds on the change chain. Without funds
+    // received to a receive chain, the backend will not lookup change.
+    let shouldTransferToReceive = receiveIndex.getOrElse(0) === 0
+    let receiveAddress = shouldTransferToReceive
+      ? HDAccount.getReceiveAddress(account, 0, network)
+      : ''
 
-  return {
-    fromType: ADDRESS_TYPES.ACCOUNT,
-    from: [account.xpub],
-    change: changeAddress,
-    fromAccountIdx: index
+    if (shouldTransferToReceive && receiveAddress) {
+      changeAddress = receiveAddress
+    }
+
+    return {
+      change: changeAddress,
+      extras: {
+        bech32
+      },
+      from: [legacy],
+      fromAccountIdx: index,
+      fromType: ADDRESS_TYPES.ACCOUNT
+    }
+    // TODO: SEGWIT remove w/ DEPRECATED_V3
+  } else {
+    let changeIndex = S.data.btc.getChangeIndex(account.xpub, state)
+    let changeAddress = changeIndex
+      .map(index => HDAccount.getChangeAddress(account, index, network))
+      .getOrFail('missing_change_address')
+
+    return {
+      fromType: ADDRESS_TYPES.ACCOUNT,
+      from: [account.xpub],
+      change: changeAddress,
+      fromAccountIdx: index
+    }
   }
 }
 
@@ -125,6 +160,7 @@ export const fromCustodial = origin => {
 export const fromPrivateKey = (network, wallet, key) => {
   let c = getWifAddress(key, true)
   let u = getWifAddress(key, false)
+  // TODO: SEGWIT i believe we can get rid of the watch only checks
   let isCompressedWatchOnly = Wallet.getAddress(c.address, wallet)
     .map(Address.isWatchOnly)
     .getOrElse(false)
@@ -148,14 +184,21 @@ export const fromPrivateKey = (network, wallet, key) => {
 export const toOutputAccount = (coin, network, state, accountIndex) => {
   const wallet = S.wallet.getWallet(state)
   const account = Wallet.getAccount(accountIndex, wallet).get() // throw if nothing
+  let xpub =
+    coin === 'BTC'
+      ? HDAccount.selectXpub(account)
+      : HDAccount.selectXpub(account, 'legacy')
   const receiveIndexR =
     coin === 'BTC'
-      ? S.data.btc.getReceiveIndex(account.xpub, state)
-      : S.data.bch.getReceiveIndex(account.xpub, state)
+      ? S.data.btc.getReceiveIndex(xpub, state)
+      : S.data.bch.getReceiveIndex(xpub, state)
   const receiveIndex = receiveIndexR.getOrFail(
     new Error('missing_receive_address')
   )
-  const address = HDAccount.getReceiveAddress(account, receiveIndex, network)
+  const address =
+    coin === 'BTC'
+      ? HDAccount.getReceiveAddress(account, receiveIndex, network)
+      : HDAccount.getReceiveAddress(account, receiveIndex, network, 'legacy')
   return {
     type: ADDRESS_TYPES.ACCOUNT,
     address,

@@ -1,15 +1,15 @@
-import { actions, selectors } from 'data'
-import { bindActionCreators, compose, Dispatch } from 'redux'
-
+import React, { PureComponent } from 'react'
 import { connect } from 'react-redux'
 import { path } from 'ramda'
-import { RecoveryPhraseStepType } from 'data/components/recoveryPhrase/types'
+import { bindActionCreators, compose, Dispatch } from 'redux'
+
+import Flyout, { duration, FlyoutChild } from 'components/Flyout'
+import { actions, selectors } from 'data'
 import { RootState } from 'data/rootReducer'
+import modalEnhancer from 'providers/ModalEnhancer'
+
 import ConfirmWords from './ConfirmWords'
 import ConfirmWordsSuccess from './ConfirmWordsSuccess'
-import Flyout, { duration, FlyoutChild } from 'components/Flyout'
-import modalEnhancer from 'providers/ModalEnhancer'
-import React, { PureComponent } from 'react'
 import RecoveryPhraseIntro from './RecoveryPhraseIntro'
 import ShowRecoveryWords from './ShowRecoveryWords'
 
@@ -41,36 +41,24 @@ export type LinkStatePropsType = {
 }
 
 export type Props = OwnPropsType & LinkDispatchPropsType & LinkStatePropsType
-type State = { direction: 'left' | 'right'; show: boolean }
+type State = { show: boolean }
 
 class RecoveryPhraseFlyout extends PureComponent<Props, State> {
-  state: State = {
-    show: false,
-    direction: 'left'
+  constructor(props) {
+    super(props)
+    this.state = {
+      show: false
+    }
   }
 
-  componentDidMount () {
+  componentDidMount() {
     /* eslint-disable */
     this.setState({ show: true })
     /* eslint-enable */
     this.getWords()
   }
 
-  componentDidUpdate (prevProps: Props) {
-    if (this.props.step === prevProps.step) return
-    if (
-      RecoveryPhraseStepType[this.props.step] >
-      RecoveryPhraseStepType[prevProps.step]
-    ) {
-      /* eslint-disable */
-      this.setState({ direction: 'left' })
-    } else {
-      this.setState({ direction: 'right' })
-      /* eslint-enable */
-    }
-  }
-
-  componentWillUnmount () {
+  componentWillUnmount() {
     this.props.recoveryPhraseActions.setStep('RECOVERY_PHRASE_INTRO')
   }
 
@@ -86,60 +74,46 @@ class RecoveryPhraseFlyout extends PureComponent<Props, State> {
   }
 
   handleBackArrow = () => {
-    this.props.step === 'FIRST_SET_WORDS'
-      ? this.props.recoveryPhraseActions.setStep('RECOVERY_PHRASE_INTRO')
-      : this.props.step === 'SECOND_SET_WORDS'
-      ? this.props.recoveryPhraseActions.setStep('FIRST_SET_WORDS')
-      : this.props.recoveryPhraseActions.setStep('SECOND_SET_WORDS')
+    if (this.props.step === 'FIRST_SET_WORDS') {
+      this.props.recoveryPhraseActions.setStep('RECOVERY_PHRASE_INTRO')
+    } else if (this.props.step === 'SECOND_SET_WORDS') {
+      this.props.recoveryPhraseActions.setStep('FIRST_SET_WORDS')
+    } else {
+      this.props.recoveryPhraseActions.setStep('SECOND_SET_WORDS')
+    }
   }
 
-  render () {
+  render() {
     return (
       <Flyout
         {...this.props}
-        in={this.state.show}
+        isOpen={this.state.show}
         onClose={this.handleClose}
-        direction={this.state.direction}
         data-e2e='recoveryPhraseModal'
       >
         {this.props.step === 'RECOVERY_PHRASE_INTRO' && (
           <FlyoutChild>
-            <RecoveryPhraseIntro
-              {...this.props}
-              handleClose={this.handleClose}
-            />
+            <RecoveryPhraseIntro {...this.props} handleClose={this.handleClose} />
           </FlyoutChild>
         )}
         {this.props.step === 'FIRST_SET_WORDS' && (
           <FlyoutChild>
-            <ShowRecoveryWords
-              {...this.props}
-              handleBackArrow={this.handleBackArrow}
-            />
+            <ShowRecoveryWords {...this.props} handleBackArrow={this.handleBackArrow} />
           </FlyoutChild>
         )}
         {this.props.step === 'SECOND_SET_WORDS' && (
           <FlyoutChild>
-            <ShowRecoveryWords
-              {...this.props}
-              handleBackArrow={this.handleBackArrow}
-            />
+            <ShowRecoveryWords {...this.props} handleBackArrow={this.handleBackArrow} />
           </FlyoutChild>
         )}
         {this.props.step === 'CONFIRM_WORDS' && (
           <FlyoutChild>
-            <ConfirmWords
-              {...this.props}
-              handleBackArrow={this.handleBackArrow}
-            />
+            <ConfirmWords {...this.props} handleBackArrow={this.handleBackArrow} />
           </FlyoutChild>
         )}
         {this.props.step === 'CONFIRM_WORDS_SUCCESS' && (
           <FlyoutChild>
-            <ConfirmWordsSuccess
-              {...this.props}
-              handleClose={this.handleClose}
-            />
+            <ConfirmWordsSuccess {...this.props} handleClose={this.handleClose} />
           </FlyoutChild>
         )}
       </Flyout>
@@ -154,12 +128,9 @@ const mapStateToProps = (state: RootState) => ({
 })
 
 const mapDispatchToProps = (dispatch: Dispatch): LinkDispatchPropsType => ({
+  recoveryPhraseActions: bindActionCreators(actions.components.recoveryPhrase, dispatch),
   settingsActions: bindActionCreators(actions.modules.settings, dispatch),
-  recoveryPhraseActions: bindActionCreators(
-    actions.components.recoveryPhrase,
-    dispatch
-  ),
-  walletActions: bindActionCreators(actions.wallet, dispatch)
+  walletActions: bindActionCreators(actions.core.wallet, dispatch)
 })
 
 const enhance = compose<any>(

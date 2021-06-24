@@ -1,33 +1,29 @@
-import { bindActionCreators, Dispatch } from 'redux'
-import { connect, ConnectedProps } from 'react-redux'
-import { FormattedMessage } from 'react-intl'
-import { LinkContainer } from 'react-router-bootstrap'
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import { connect, ConnectedProps } from 'react-redux'
+import { LinkContainer } from 'react-router-bootstrap'
+import { bindActionCreators, Dispatch } from 'redux'
 import styled from 'styled-components'
 
-import { actions } from 'data'
+import { SkeletonRectangle, TabMenu, TabMenuItem, Text } from 'blockchain-info-components'
+import { Remote } from 'blockchain-wallet-v4/src'
 import {
   CoinType,
+  InterestEDDStatus,
   InterestRateType,
   RemoteDataType,
   SupportedWalletCurrenciesType
-} from 'core/types'
+} from 'blockchain-wallet-v4/src/types'
 import { Container } from 'components/Box'
-import { Remote } from 'core'
 import { SceneWrapper } from 'components/Layout'
-import {
-  SkeletonRectangle,
-  TabMenu,
-  TabMenuItem,
-  Text
-} from 'blockchain-info-components'
+import { actions } from 'data'
 import { UserDataType } from 'data/types'
 
-import { getData } from './selectors'
 import IneligibilityCard from './IneligibilityCard'
-import InterestHeader from './template.header'
 import IntroCard from './IntroCard'
+import getData from './selectors'
 import SummaryCard from './SummaryCard'
+import InterestHeader from './template.header'
 
 const ContainerStyled = styled(Container)`
   display: flex;
@@ -42,19 +38,20 @@ const TabRow = styled.div`
 `
 
 class Interest extends React.PureComponent<Props, StateType> {
-  state = { isGoldTier: true }
+  constructor(props) {
+    super(props)
+    this.state = { isGoldTier: true }
+  }
 
-  componentDidMount () {
+  componentDidMount() {
     this.props.interestActions.fetchInterestInstruments()
     this.props.interestActions.fetchInterestRate()
     this.props.interestActions.fetchInterestBalance()
+    this.props.interestActions.fetchEDDStatus()
   }
 
-  componentDidUpdate (prevProps: Props) {
-    if (
-      !Remote.Success.is(prevProps.data) &&
-      Remote.Success.is(this.props.data)
-    ) {
+  componentDidUpdate(prevProps: Props) {
+    if (!Remote.Success.is(prevProps.data) && Remote.Success.is(this.props.data)) {
       this.checkUserData()
     }
   }
@@ -68,7 +65,7 @@ class Interest extends React.PureComponent<Props, StateType> {
     this.setState({ isGoldTier })
   }
 
-  render () {
+  render() {
     const { isGoldTier } = this.state
     const { data } = this.props
     return (
@@ -79,10 +76,7 @@ class Interest extends React.PureComponent<Props, StateType> {
             <TabMenu>
               <LinkContainer to='/interest' exact>
                 <TabMenuItem data-e2e='interestTabMenuAccounts'>
-                  <FormattedMessage
-                    id='scenes.interest.tab.accounts'
-                    defaultMessage='Accounts'
-                  />
+                  <FormattedMessage id='scenes.interest.tab.accounts' defaultMessage='Accounts' />
                 </TabMenuItem>
               </LinkContainer>
               <LinkContainer to='/interest/history'>
@@ -97,12 +91,19 @@ class Interest extends React.PureComponent<Props, StateType> {
           </TabRow>
         )}
         {data.cata({
-          Success: val => (
+          Failure: () => (
+            <Text size='16px' weight={500}>
+              Oops. Something went wrong. Please refresh and try again.
+            </Text>
+          ),
+          Loading: () => <SkeletonRectangle width='275px' height='275px' />,
+          NotAsked: () => <SkeletonRectangle width='275px' height='275px' />,
+          Success: (val) => (
             <>
               <ContainerStyled>
                 <IntroCard {...val} {...this.props} isGoldTier={isGoldTier} />
                 {isGoldTier &&
-                  val.instruments.map(instrument => {
+                  val.instruments.map((instrument) => {
                     return (
                       <SummaryCard
                         {...val}
@@ -116,14 +117,7 @@ class Interest extends React.PureComponent<Props, StateType> {
               </ContainerStyled>
               <IneligibilityCard {...val} {...this.props} />
             </>
-          ),
-          Failure: () => (
-            <Text size='16px' weight={500}>
-              Oops. Something went wrong. Please refresh and try again.
-            </Text>
-          ),
-          Loading: () => <SkeletonRectangle width='275px' height='275px' />,
-          NotAsked: () => <SkeletonRectangle width='275px' height='275px' />
+          )
         })}
       </SceneWrapper>
     )
@@ -135,10 +129,7 @@ const mapStateToProps = (state): LinkStatePropsType => ({
 })
 
 const mapDispatchToProps = (dispatch: Dispatch): LinkDispatchPropsType => ({
-  idvActions: bindActionCreators(
-    actions.components.identityVerification,
-    dispatch
-  ),
+  idvActions: bindActionCreators(actions.components.identityVerification, dispatch),
   interestActions: bindActionCreators(actions.components.interest, dispatch)
 })
 
@@ -149,6 +140,7 @@ export type StateType = {
 }
 export type SuccessStateType = {
   instruments: Array<CoinType>
+  interestEDDStatus: InterestEDDStatus
   interestRate: InterestRateType
   interestRateArray: Array<number>
   supportedCoins: SupportedWalletCurrenciesType

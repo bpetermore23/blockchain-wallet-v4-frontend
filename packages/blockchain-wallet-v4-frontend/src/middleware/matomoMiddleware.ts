@@ -36,7 +36,7 @@ type WhitelistActions = keyof typeof WhitelistActionTypesEnum
 // keep alphabetized
 const TYPE_WHITELIST = Object.keys(WhitelistActionTypesEnum)
 
-const EVENT_ACTION_BLACKLIST = ['ShowXPub']
+const EVENT_ACTION_BLACKLIST = ['SHOW_XPUB_MODAL']
 
 const formatEvent = x => (typeof x !== 'string' ? JSON.stringify(x) : x)
 
@@ -55,7 +55,6 @@ const sanitizeEvent = (
       switch (sbAction.step) {
         case 'ORDER_SUMMARY':
         case 'CHECKOUT_CONFIRM':
-        case 'CANCEL_ORDER':
           return [
             nextCategory,
             formatEvent({

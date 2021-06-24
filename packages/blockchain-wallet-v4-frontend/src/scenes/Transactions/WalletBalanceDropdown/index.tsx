@@ -1,4 +1,17 @@
-import { actions } from 'data'
+import React, { Component } from 'react'
+import { FormattedMessage } from 'react-intl'
+import { connect, ConnectedProps } from 'react-redux'
+import BigNumber from 'bignumber.js'
+import { flatten } from 'ramda'
+import { bindActionCreators, Dispatch } from 'redux'
+import { Field } from 'redux-form'
+import styled from 'styled-components'
+
+import { CoinAccountIcon, Text } from 'blockchain-info-components'
+import {
+  coinToString,
+  fiatToString
+} from 'blockchain-wallet-v4/src/exchange/currency'
 import {
   AddressTypesType,
   CoinType,
@@ -8,24 +21,16 @@ import {
   FiatTypeEnum,
   SupportedCoinType,
   WalletFiatType
-} from 'core/types'
-import { bindActionCreators, Dispatch } from 'redux'
-import { coinToString, fiatToString } from 'core/exchange/currency'
-import { connect, ConnectedProps } from 'react-redux'
-import { convertBaseToStandard } from 'data/components/exchange/services'
-import { Field } from 'redux-form'
-import { flatten } from 'ramda'
-import { FormattedMessage } from 'react-intl'
-import { getData } from './selectors'
-import { Icon, Text } from 'blockchain-info-components'
-import { ModalNamesType } from 'data/types'
-import BigNumber from 'bignumber.js'
+} from 'blockchain-wallet-v4/src/types'
 import CoinDisplay from 'components/Display/CoinDisplay'
 import FiatDisplay from 'components/Display/FiatDisplay'
-import Loading from './template.loading'
-import React, { Component } from 'react'
 import SelectBox from 'components/Form/SelectBox'
-import styled from 'styled-components'
+import { actions } from 'data'
+import { convertBaseToStandard } from 'data/components/exchange/services'
+import { ModalNamesType } from 'data/modals/types'
+
+import { getData } from './selectors'
+import Loading from './template.loading'
 import UserPortfolioPositionChange from './UserPortfolioPositionChange'
 
 const Wrapper = styled.div`
@@ -41,20 +46,20 @@ const DisplayContainer = styled.div<{ coinType: any; isItem?: boolean }>`
   align-items: center;
   box-sizing: border-box;
   height: ${props => (props.isItem ? 'auto' : '100%')};
-  padding: ${props => (props.isItem ? '0px 0px' : '15px 4px')};
+  padding: ${props => (props.isItem ? '0px' : '16px')};
   > span {
-    color: ${props => props.theme[props.coinType.colorCode]} !important;
+    color: ${props => props.theme[props.coinType.coinCode]} !important;
   }
-  background-color: none;
+  background-color: transparent;
 `
 const AccountContainer = styled.div<{ isItem?: boolean }>`
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  margin-left: ${props => (props.isItem ? '16px' : '12px')};
+  margin-left: ${props => (props.isItem ? '16px' : '0')};
   height: ${props => (props.isItem ? 'auto' : '100%')};
-  padding: 12px 0;
+  padding: ${props => (props.isItem ? '12px 0' : '0')};
   width: 100%;
   cursor: pointer;
   .bc__single-value {
@@ -88,6 +93,8 @@ const CoinSelect = styled(SelectBox)`
     height: 100%;
     background-color: ${({ theme }) => theme.white};
     border: 1px solid ${({ theme }) => theme.grey100};
+    box-sizing: border-box;
+
     & .bc__control--is-focused {
       border: 1px solid ${({ theme }) => theme.blue600};
     }
@@ -104,6 +111,7 @@ const CoinSelect = styled(SelectBox)`
     &:not(:last-child) {
       ${AccountContainer} {
         border-bottom: 1px solid ${props => props.theme.grey000};
+        box-sizing: border-box;
       }
     }
   }
@@ -117,7 +125,7 @@ const CoinSelect = styled(SelectBox)`
   }
 `
 
-export class WalletBalanceDropdown extends Component<Props> {
+class WalletBalanceDropdown extends Component<Props> {
   state = {}
 
   isBtcTypeCoin = () => {
@@ -134,35 +142,24 @@ export class WalletBalanceDropdown extends Component<Props> {
       return true
     } else if (this.isBtcTypeCoin() && accounts.length > 4) {
       return true
-    } else if (!this.isBtcTypeCoin() && accounts.length > 3) {
-      return true
-    } else {
-      return false
-    }
+    } else return !this.isBtcTypeCoin() && accounts.length > 3
   }
 
   handleRequest = () => {
-    if (this.props.isCoinErc20) {
-      this.props.modalActions.showModal('@MODAL.REQUEST.ETH', {
-        coin: this.props.coin,
+    this.props.modalActions.showModal(
+      'REQUEST_CRYPTO_MODAL' as ModalNamesType,
+      {
+        coin: this.props.coin in CoinTypeEnum && this.props.coin,
         origin: 'WalletBalanceDropdown'
-      })
-    } else {
-      const modal = `@MODAL.REQUEST.${this.props.coin}` as ModalNamesType
-      this.props.modalActions.showModal(modal, {
-        origin: 'WalletBalanceDropdown',
-        coin: this.props.coin
-      })
-    }
+      }
+    )
   }
 
   isTotalBalanceType = selectProps => {
     // BTC/BCH
     if (selectProps.value === 'all') return true
     // ETH/PAX/STELLAR/ALGO
-    if (!selectProps.value) return true
-
-    return false
+    return !selectProps.value
   }
 
   coinBalance = selectProps => {
@@ -255,7 +252,6 @@ export class WalletBalanceDropdown extends Component<Props> {
               weight={500}
               color='blue600'
               onClick={this.handleRequest}
-              lineHeight='18px'
             >
               <FormattedMessage
                 id='scenes.transactions.performance.request'
@@ -331,10 +327,9 @@ export class WalletBalanceDropdown extends Component<Props> {
 
     return (
       <DisplayContainer coinType={coinType} isItem>
-        <Icon
-          color={coinType.colorCode}
-          name={coinType.icons.circleFilled}
-          size='32px'
+        <CoinAccountIcon
+          accountType={props.value.type}
+          coin={coinType.coinCode}
         />
         <AccountContainer isItem>
           <Text weight={500} color='grey400' size='14px'>
@@ -373,11 +368,12 @@ export class WalletBalanceDropdown extends Component<Props> {
     )
   }
 
-  render () {
+  render() {
     return this.props.data.cata({
       Success: values => {
         const { addressData } = values
         const options = addressData.data
+
         return (
           <Wrapper>
             <Field

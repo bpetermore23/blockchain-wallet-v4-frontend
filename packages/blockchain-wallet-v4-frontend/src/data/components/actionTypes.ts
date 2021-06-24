@@ -1,9 +1,12 @@
 import * as algoTransactions from './algoTransactions/actionTypes'
 import * as bchTransactions from './bchTransactions/actionTypes'
 import * as borrow from './borrow/actionTypes'
+import * as brokerage from './brokerage/actionTypes'
 import * as btcTransactions from './btcTransactions/actionTypes'
+import * as dotTransactions from './dotTransactions/actionTypes'
 import * as ethTransactions from './ethTransactions/actionTypes'
 import * as fiatTransactions from './fiatTransactions/actionTypes'
+import * as fundRecovery from './fundRecovery/actionTypes'
 import * as identityVerification from './identityVerification/actionTypes'
 import * as importBtcAddress from './importBtcAddress/actionTypes'
 import * as interest from './interest/actionTypes'
@@ -14,11 +17,10 @@ import * as onboarding from './onboarding/actionTypes'
 import * as priceChart from './priceChart/actionTypes'
 import * as priceTicker from './priceTicker/actionTypes'
 import * as recoveryPhrase from './recoveryPhrase/actionTypes'
+import * as recurringBuys from './recurringBuys/actionTypes'
 import * as refresh from './refresh/actionTypes'
-import * as requestBch from './requestBch/actionTypes'
-import * as requestBtc from './requestBtc/actionTypes'
-import * as requestEth from './requestEth/actionTypes'
-import * as requestXlm from './requestXlm/actionTypes'
+import * as request from './request/actionTypes'
+import * as resetWallet2fa from './resetWallet2fa/actionTypes'
 import * as send from './send/actionTypes'
 import * as sendBch from './sendBch/actionTypes'
 import * as sendBtc from './sendBtc/actionTypes'
@@ -38,10 +40,12 @@ export {
   algoTransactions,
   bchTransactions,
   borrow,
+  brokerage,
   btcTransactions,
+  dotTransactions,
   ethTransactions,
-  xlmTransactions,
   fiatTransactions,
+  fundRecovery,
   identityVerification,
   importBtcAddress,
   interest,
@@ -52,11 +56,10 @@ export {
   priceChart,
   priceTicker,
   recoveryPhrase,
+  recurringBuys,
   refresh,
-  requestBtc,
-  requestBch,
-  requestEth,
-  requestXlm,
+  request,
+  resetWallet2fa,
   send,
   sendBch,
   sendBtc,
@@ -68,6 +71,7 @@ export {
   stxTransactions,
   swap,
   uploadDocuments,
+  veriff,
   withdraw,
-  veriff
+  xlmTransactions
 }

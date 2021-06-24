@@ -1,10 +1,17 @@
-import { FormattedMessage } from 'react-intl'
 import React, { useState } from 'react'
+import { FormattedMessage } from 'react-intl'
+import { connect, ConnectedProps } from 'react-redux'
 
-import { CoinTypeEnum, FiatSBAndSwapTransactionType } from 'core/types'
-import { convertBaseToStandard } from 'data/components/exchange/services'
-import { fiatToString } from 'core/exchange/currency'
 import { Text } from 'blockchain-info-components'
+import { fiatToString } from 'blockchain-wallet-v4/src/exchange/currency'
+import {
+  CoinTypeEnum,
+  FiatSBAndSwapTransactionType,
+  SupportedWalletCurrenciesType
+} from 'blockchain-wallet-v4/src/types'
+import { selectors } from 'data'
+import { convertBaseToStandard } from 'data/components/exchange/services'
+import { RootState } from 'data/rootReducer'
 
 import {
   Addresses,
@@ -20,6 +27,7 @@ import {
   TxRow,
   TxRowContainer
 } from '../components'
+import { Props as OwnProps } from '../TransactionList'
 import {
   Destination,
   IconTx,
@@ -28,7 +36,6 @@ import {
   Timestamp,
   TransactionType
 } from './model'
-import { Props as OwnProps } from '../TransactionList'
 
 const CustodialTxListItem: React.FC<Props> = props => {
   const [isToggled, setIsToggled] = useState(false)
@@ -154,8 +161,17 @@ const CustodialTxListItem: React.FC<Props> = props => {
   )
 }
 
-export type Props = OwnProps & {
-  tx: FiatSBAndSwapTransactionType
-}
+const mapStateToProps = (state: RootState) => ({
+  supportedCoins: selectors.core.walletOptions
+    .getSupportedCoins(state)
+    .getOrElse({} as SupportedWalletCurrenciesType)
+})
 
-export default CustodialTxListItem
+const connector = connect(mapStateToProps)
+
+export type Props = OwnProps &
+  ConnectedProps<typeof connector> & {
+    tx: FiatSBAndSwapTransactionType
+  }
+
+export default connector(CustodialTxListItem)

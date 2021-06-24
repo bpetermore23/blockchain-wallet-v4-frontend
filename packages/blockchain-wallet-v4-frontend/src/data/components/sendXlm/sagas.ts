@@ -1,12 +1,5 @@
-import * as A from './actions'
-import * as C from 'services/AlertService'
-import * as Lockbox from 'services/LockboxService'
-import * as S from './selectors'
-import { actions, model, selectors } from 'data'
-import { ADDRESS_TYPES } from 'blockchain-wallet-v4/src/redux/payment/btc/utils'
-import { AddressTypesType, CustodialFromType, XlmPaymentType } from 'core/types'
-import { APIType } from 'core/network/api'
-import { call, delay, put, select } from 'redux-saga/effects'
+import BigNumber from 'bignumber.js'
+import { equals, head, includes, last, path, pathOr, prop, propOr } from 'ramda'
 import {
   change,
   destroy,
@@ -15,13 +8,27 @@ import {
   stopSubmit,
   touch
 } from 'redux-form'
-import { equals, head, includes, last, path, pathOr, prop, propOr } from 'ramda'
-import { errorHandler } from 'blockchain-wallet-v4/src/utils'
+import { call, delay, put, select } from 'redux-saga/effects'
+
 import { Exchange } from 'blockchain-wallet-v4/src'
-import { FORM } from './model'
+import { APIType } from 'blockchain-wallet-v4/src/network/api'
+import { ADDRESS_TYPES } from 'blockchain-wallet-v4/src/redux/payment/btc/utils'
+import {
+  AddressTypesType,
+  CustodialFromType,
+  XlmPaymentType
+} from 'blockchain-wallet-v4/src/types'
+import { errorHandler } from 'blockchain-wallet-v4/src/utils'
+import { actions, model, selectors } from 'data'
 import { ModalNamesType } from 'data/modals/types'
-import { promptForLockbox, promptForSecondPassword } from 'services/SagaService'
+import * as C from 'services/alerts'
+import * as Lockbox from 'services/lockbox'
+import { promptForSecondPassword } from 'services/sagas'
+
 import sendSagas from '../send/sagas'
+import * as A from './actions'
+import { FORM } from './model'
+import * as S from './selectors'
 
 const { TRANSACTION_EVENTS } = model.analytics
 export const logLocation = 'components/sendXlm/sagas'
@@ -109,7 +116,7 @@ export default ({
           yield put(actions.modals.closeAllModals())
           yield put(
             actions.modals.showModal(
-              `@MODAL.SEND.${modalName}` as ModalNamesType,
+              `SEND_${modalName}_MODAL` as ModalNamesType,
               {
                 coin: payload,
                 origin: 'SendXlm'
@@ -121,7 +128,16 @@ export default ({
           const source = prop('address', payload) || payload
           const fromType = prop('type', payload)
           if (fromType === 'CUSTODIAL') {
-            payment = yield call(setFrom, payment, payload, fromType)
+            const response: ReturnType<typeof api.getWithdrawalFees> = yield call(
+              api.getWithdrawalFees,
+              'simplebuy',
+              'DEFAULT'
+            )
+            const fee =
+              response.fees.find(({ symbol }) => symbol === 'XLM')
+                ?.minorValue || '0'
+            payment = yield call(setFrom, payment, payload, fromType, fee)
+            payment = yield payment.fee(fee)
             yield put(A.paymentUpdatedSuccess(payment.value()))
             yield put(change(FORM, 'to', null))
           } else {
@@ -134,6 +150,15 @@ export default ({
           // @ts-ignore
           const splitValue = propOr(value, 'address', value).split(':')
           const address = head(splitValue)
+          if (includes('.', (address as unknown) as string)) {
+            yield put(
+              actions.components.send.fetchUnstoppableDomainResults(
+                (value as unknown) as string,
+                'XLM'
+              )
+            )
+            return
+          }
           payment = yield payment.to(address)
           // do not block payment update when to is changed w/ destinationAccount check
           yield put(A.paymentUpdatedSuccess(payment.value()))
@@ -265,7 +290,7 @@ export default ({
           fromAddress
         )).getOrFail('missing_device')
         const deviceType = prop('device_type', device)
-        yield call(promptForLockbox, 'XLM', deviceType, [toAddress])
+        yield call(Lockbox.promptForLockbox, 'XLM', deviceType, [toAddress])
         let connection = yield select(
           selectors.components.lockbox.getCurrentConnection
         )
@@ -382,7 +407,8 @@ export default ({
   const setFrom = function * (
     payment: XlmPaymentType,
     from?: string | CustodialFromType,
-    type?: AddressTypesType
+    type?: AddressTypesType,
+    fee?: string
   ) {
     let updatedPayment
     try {
@@ -394,7 +420,9 @@ export default ({
             payment.from,
             fromCustodialT.label,
             type,
-            fromCustodialT.withdrawable
+            new BigNumber(fromCustodialT.withdrawable)
+              .minus(fee || '0')
+              .toString()
           )
           break
         default:

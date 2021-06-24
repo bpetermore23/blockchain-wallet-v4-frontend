@@ -1,14 +1,21 @@
-import { InvitationsType } from '.'
+import { InvitationsType } from './types'
 
 export const DEFAULT_INVITATIONS: InvitationsType = {
+  AAVE: true,
   ALGO: true,
   BCH: true,
   BTC: true,
+  DOT: true,
   ETH: true,
   PAX: true,
   STX: true,
-  XLM: true,
   USDT: true,
   WDGLD: true,
-  simpleSell2dot0: false
+  XLM: true,
+  YFI: true,
+  achDepositWithdrawal: false,
+  openBanking: false,
+  segwit: false
 }
+
+export default DEFAULT_INVITATIONS

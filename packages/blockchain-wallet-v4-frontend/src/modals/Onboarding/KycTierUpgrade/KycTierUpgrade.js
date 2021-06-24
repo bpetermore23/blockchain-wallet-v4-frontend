@@ -1,15 +1,16 @@
-import { connect } from 'react-redux'
-import { FormattedHTMLMessage, FormattedMessage } from 'react-intl'
-import { path } from 'ramda'
 import React from 'react'
+import { FormattedMessage } from 'react-intl'
+import { connect } from 'react-redux'
+import { path } from 'ramda'
 import styled from 'styled-components'
 
-import { actions } from 'data'
 import { Button, Image, Modal, Text } from 'blockchain-info-components'
-import { getData } from './selectors'
-import { headers } from 'components/IdentityVerification/TierCard/services'
 import { TIERS } from 'components/IdentityVerification/TierCard/model'
+import { headers } from 'components/IdentityVerification/TierCard/services'
+import { actions } from 'data'
 import modalEnhancer from 'providers/ModalEnhancer'
+
+import { getData } from './selectors'
 
 const Body = styled.div`
   display: flex;
@@ -49,17 +50,17 @@ const FooterButton = styled(Button).attrs({
 `
 
 class KycTierUpgrade extends React.PureComponent {
-  componentDidMount () {
+  componentDidMount() {
     this.props.dontShowAgain()
   }
 
-  render () {
+  render() {
     const {
-      position,
-      total,
       amountLeft,
       nextTier,
       nextTierAmount,
+      position,
+      total,
       upgrade
     } = this.props
 
@@ -67,7 +68,7 @@ class KycTierUpgrade extends React.PureComponent {
       <Modal size='small' position={position} total={total}>
         <Body data-e2e='swapGetStarted'>
           <Title size='20px'>
-            <FormattedHTMLMessage
+            <FormattedMessage
               defaultMessage='Heads up! You have <b>{amount}</b> left to Swap'
               id='modals.swap_upgrade.heads_up'
               values={{
@@ -116,4 +117,4 @@ export const ConnectedSwapUpgrade = connect(
   mapDispatchToProps
 )(KycTierUpgrade)
 
-export default modalEnhancer('KycTierUpgrade')(ConnectedSwapUpgrade)
+export default modalEnhancer('KYC_TIER_UPGRADE_MODAL')(ConnectedSwapUpgrade)

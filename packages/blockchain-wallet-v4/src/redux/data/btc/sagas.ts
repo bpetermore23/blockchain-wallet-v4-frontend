@@ -1,21 +1,32 @@
+import moment from 'moment'
+import {
+  concat,
+  flatten,
+  indexBy,
+  length,
+  map,
+  path,
+  prop,
+  replace
+} from 'ramda'
+import { call, put, select, take } from 'redux-saga/effects'
+
+import { APIType } from 'core/network/api'
+import { ProcessedTxType } from 'core/transactions/types'
+import { FetchCustodialOrdersAndTransactionsReturnType } from 'core/types'
+
+import Remote from '../../../remote'
+import * as transactions from '../../../transactions'
+import { HDAccountList, Wallet } from '../../../types'
+import { errorHandler, MISSING_WALLET } from '../../../utils'
+import { getAddressLabels } from '../../kvStore/btc/selectors'
+import { getLockboxBtcAccounts } from '../../kvStore/lockbox/selectors'
+import * as selectors from '../../selectors'
+import * as walletSelectors from '../../wallet/selectors'
+import custodialSagas from '../custodial/sagas'
 import * as A from './actions'
 import * as AT from './actionTypes'
 import * as S from './selectors'
-import * as selectors from '../../selectors'
-import * as transactions from '../../../transactions'
-import * as walletSelectors from '../../wallet/selectors'
-import { APIType } from 'core/network/api'
-import { call, put, select, take } from 'redux-saga/effects'
-import { errorHandler, MISSING_WALLET } from '../../../utils'
-import { FetchCustodialOrdersAndTransactionsReturnType } from 'core/types'
-import { flatten, indexBy, length, map, path, prop, replace } from 'ramda'
-import { getAddressLabels } from '../../kvStore/btc/selectors'
-import { getLockboxBtcAccounts } from '../../kvStore/lockbox/selectors'
-import { HDAccountList, Wallet } from '../../../types'
-import { ProcessedTxType } from 'core/transactions/types'
-import custodialSagas from '../custodial/sagas'
-import moment from 'moment'
-import Remote from '../../../remote'
 
 const transformTx = transactions.btc.transformTx
 const TX_PER_PAGE = 10
@@ -60,19 +71,26 @@ export default ({ api }: { api: APIType }) => {
   const fetchTransactions = function * (action) {
     try {
       const { payload } = action
-      const { address, reset } = payload
+      const { address, filter, reset } = payload
       const pages = yield select(S.getTransactions)
       const offset = reset ? 0 : length(pages) * TX_PER_PAGE
       const transactionsAtBound = yield select(S.getTransactionsAtBound)
       if (transactionsAtBound && !reset) return
       yield put(A.fetchTransactionsLoading(reset))
-      const walletContext = yield select(selectors.wallet.getWalletContext)
       const context = yield select(S.getContext)
-      const data = yield call(api.fetchBlockchainData, context, {
-        n: TX_PER_PAGE,
-        onlyShow: address || walletContext,
-        offset
-      })
+      const walletContext = yield select(S.getWalletContext)
+      const data = yield call(
+        api.fetchBlockchainData,
+        context,
+        {
+          n: TX_PER_PAGE,
+          onlyShow:
+            // TODO: SEGWIT remove w/ DEPRECATED_V3
+            address || concat(walletContext.legacy, walletContext.bech32 || []),
+          offset
+        },
+        filter
+      )
       const atBounds = length(data.txs) < TX_PER_PAGE
       yield put(A.transactionsAtBound(atBounds))
       const txPage: Array<ProcessedTxType> = yield call(__processTxs, data.txs)
@@ -98,7 +116,15 @@ export default ({ api }: { api: APIType }) => {
   }
 
   const fetchTransactionHistory = function * ({ payload }) {
-    const { address, start, end } = payload
+    const { address, end, start } = payload
+    // TODO: SEGWIT remove w/ DEPRECATED_V3
+    // Remove address.length check
+    const bech32Address =
+      address.length === 2 &&
+      address.find(add => prop('type', add) === 'bech32')
+    const legacyAddress =
+      address.length === 2 &&
+      address.find(add => prop('type', add) === 'legacy')
     const startDate = moment(start).format('DD/MM/YYYY')
     const endDate = moment(end).format('DD/MM/YYYY')
     try {
@@ -106,9 +132,11 @@ export default ({ api }: { api: APIType }) => {
       const currency = yield select(selectors.settings.getCurrency)
       if (address) {
         const data = yield call(
-          api.getTransactionHistory,
-          'BTC',
-          address,
+          api.getBtcTransactionHistory,
+          // TODO: SEGWIT remove w/ DEPRECATED_V3
+          // remove || fallback
+          prop('address', legacyAddress) || address,
+          prop('address', bech32Address) || undefined,
           currency.getOrElse('USD'),
           startDate,
           endDate
@@ -118,12 +146,12 @@ export default ({ api }: { api: APIType }) => {
         const context = yield select(S.getContext)
         const active = context.join('|')
         const data = yield call(
-          api.getTransactionHistory,
-          'BTC',
+          api.getBtcTransactionHistory,
           active,
+          undefined,
           currency.getOrElse('USD'),
           startDate,
-          end
+          endDate
         )
         yield put(A.fetchTransactionHistorySuccess(data))
       }
@@ -162,7 +190,7 @@ export default ({ api }: { api: APIType }) => {
   }
 
   const fetchFiatAtTime = function * (action) {
-    const { hash, amount, time, currency } = action.payload
+    const { amount, currency, hash, time } = action.payload
     try {
       yield put(A.fetchFiatAtTimeLoading(hash, currency))
       const data = yield call(api.getBtcFiatAtTime, amount, currency, time)

@@ -1,12 +1,13 @@
-import { Field } from 'redux-form'
+import React from 'react'
 import { FormattedMessage } from 'react-intl'
+import { Field } from 'redux-form'
+import styled from 'styled-components'
+
 import { IconButton, TooltipHost } from 'blockchain-info-components'
-import { StickyHeader } from 'components/Layout'
 import { TabMenuTransactionStatus, TextBox } from 'components/Form'
 import HorizontalMenu from 'components/HorizontalMenu'
-import media from 'services/ResponsiveService'
-import React from 'react'
-import styled from 'styled-components'
+import { StickyHeader } from 'components/Layout'
+import { media } from 'services/styles'
 
 const StyledIconButton = styled(IconButton)`
   border: 1px solid ${props => props.theme['grey100']};
@@ -51,10 +52,7 @@ const TransactionFilters = ({ handleClickReporting }) => (
             onClick={handleClickReporting}
             width='120px'
           >
-            <FormattedMessage
-              id='scenes.transactions.export.download'
-              defaultMessage='Download'
-            />
+            <FormattedMessage id='copy.download' defaultMessage='Download' />
           </StyledIconButton>
         </TooltipHost>
         <SearchField
